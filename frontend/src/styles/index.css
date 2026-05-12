@@ -1,0 +1,42 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    @apply bg-background text-on-background font-sans antialiased;
+  }
+}
+
+@layer components {
+  .card {
+    @apply bg-surface-container-lowest rounded-xl shadow-card;
+  }
+  .card-hover {
+    @apply hover:shadow-card-hover hover:-translate-y-1 transition-all duration-200;
+  }
+  .btn-primary {
+    @apply bg-primary-container text-on-primary font-semibold text-label-md px-6 py-3 rounded-lg hover:opacity-90 transition-opacity active:scale-95 flex items-center gap-2 justify-center;
+  }
+  .btn-outline {
+    @apply border border-outline text-on-surface-variant font-semibold text-label-md px-6 py-3 rounded-lg hover:bg-surface-container transition-colors active:scale-95 flex items-center gap-2 justify-center;
+  }
+  .learning-note {
+    @apply bg-[#FFF9C4] border-l-4 border-tertiary-container rounded-xl p-stack-gap-md flex items-start gap-stack-gap-sm;
+  }
+  .disclaimer {
+    @apply text-xs text-outline text-center;
+  }
+}
+
+/* Safe area bottom padding for mobile */
+.pb-safe {
+  padding-bottom: env(safe-area-inset-bottom, 12px);
+}
+
+/* Material Symbols size fix */
+.material-symbols-outlined {
+  font-size: inherit;
+  line-height: 1;
+  vertical-align: middle;
+}
