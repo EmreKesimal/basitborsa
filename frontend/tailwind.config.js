@@ -1,6 +1,8 @@
 /** @type {import('tailwindcss').Config} */
 export default {
   content: ['./index.html', './src/**/*.{js,jsx}'],
+  darkMode: 'class',
+  safelist: ['text-positive'],
   theme: {
     extend: {
       colors: {
@@ -45,6 +47,7 @@ export default {
         'on-error-container': '#93000a',
         'inverse-surface': '#233144',
         'inverse-on-surface': '#ebf1ff',
+        positive: '#16a34a',
       },
       borderRadius: {
         DEFAULT: '0.25rem',
@@ -64,22 +67,21 @@ export default {
         sans: ['Inter', 'sans-serif'],
       },
       fontSize: {
-        'label-md': ['14px', { lineHeight: '1.4', letterSpacing: '0.05em', fontWeight: '600' }],
-        'body-md': ['16px', { lineHeight: '1.5', fontWeight: '400' }],
-        'body-lg': ['18px', { lineHeight: '1.6', fontWeight: '400' }],
+        'label-md':    ['14px', { lineHeight: '1.4', letterSpacing: '0.05em', fontWeight: '600' }],
+        'body-md':     ['16px', { lineHeight: '1.5', fontWeight: '400' }],
+        'body-lg':     ['18px', { lineHeight: '1.6', fontWeight: '400' }],
         'headline-md': ['24px', { lineHeight: '1.3', fontWeight: '600' }],
         'headline-lg': ['32px', { lineHeight: '1.2', letterSpacing: '-0.01em', fontWeight: '600' }],
-        'display-lg': ['48px', { lineHeight: '1.1', letterSpacing: '-0.02em', fontWeight: '700' }],
+        'display-lg':  ['48px', { lineHeight: '1.1', letterSpacing: '-0.02em', fontWeight: '700' }],
       },
       maxWidth: {
         content: '800px',
       },
       boxShadow: {
-        card: '0 4px 20px rgba(51, 65, 85, 0.05)',
-        'card-hover': '0 8px 30px rgba(51, 65, 85, 0.08)',
+        card:       '0 4px 20px rgba(51, 65, 85, 0.06)',
+        'card-hover':'0 8px 30px rgba(51, 65, 85, 0.10)',
       },
     },
   },
   plugins: [],
 }
-

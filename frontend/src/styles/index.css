@@ -2,12 +2,14 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ─── Base ───────────────────────────────────────────────── */
 @layer base {
   body {
-    @apply bg-background text-on-background font-sans antialiased;
+    @apply bg-background text-on-background font-sans antialiased transition-colors duration-200;
   }
 }
 
+/* ─── Component classes ──────────────────────────────────── */
 @layer components {
   .card {
     @apply bg-surface-container-lowest rounded-xl shadow-card;
@@ -22,11 +24,74 @@
     @apply border border-outline text-on-surface-variant font-semibold text-label-md px-6 py-3 rounded-lg hover:bg-surface-container transition-colors active:scale-95 flex items-center gap-2 justify-center;
   }
   .learning-note {
-    @apply bg-[#FFF9C4] border-l-4 border-tertiary-container rounded-xl p-stack-gap-md flex items-start gap-stack-gap-sm;
+    @apply bg-[#fff9c4] border-l-4 border-tertiary-container rounded-xl p-stack-gap-md flex items-start gap-stack-gap-sm;
   }
   .disclaimer {
     @apply text-xs text-outline text-center;
   }
+}
+
+/* ─── Dark mode overrides ────────────────────────────────────
+   All rules use .dark as parent so specificity (0,2,0) beats
+   Tailwind's single-class utilities (0,1,0). No !important needed.
+   ─────────────────────────────────────────────────────────── */
+@layer utilities {
+  /* Page & nav backgrounds */
+  .dark .bg-background,
+  .dark .bg-surface            { background-color: #111827; }
+
+  /* Card & elevated surfaces */
+  .dark .bg-surface-container-lowest  { background-color: #1f2937; }
+  .dark .bg-surface-container-low     { background-color: #1e2a3a; }
+  .dark .bg-surface-container         { background-color: #243347; }
+  .dark .bg-surface-container-high    { background-color: #2d3c52; }
+  .dark .bg-surface-container-highest { background-color: #364459; }
+  .dark .bg-surface-variant           { background-color: #1e293b; }
+
+  /* Accent / chip backgrounds */
+  .dark .bg-primary-container    { background-color: #0e7490; }
+  .dark .bg-secondary-container  { background-color: #3d3a28; }
+  .dark .bg-secondary-fixed      { background-color: #3d3a28; }
+  .dark .bg-tertiary-fixed-dim   { background-color: #7a4900; }
+  .dark .bg-tertiary-container   { background-color: #b45309; }
+  .dark .bg-error-container      { background-color: #7f1d1d; }
+
+  /* Text colors */
+  .dark .text-on-background,
+  .dark .text-on-surface           { color: #e2e8f0; }
+  .dark .text-on-surface-variant   { color: #94a3b8; }
+  .dark .text-primary              { color: #22d3ee; }
+  .dark .text-on-primary-container { color: #ecfeff; }
+  .dark .text-outline              { color: #475569; }
+  .dark .text-error                { color: #f87171; }
+  .dark .text-positive             { color: #4ade80; }
+  .dark .text-green-600            { color: #4ade80; }
+  .dark .text-tertiary             { color: #fba84a; }
+  .dark .text-tertiary-container   { color: #b45309; }
+
+  /* Border colors */
+  .dark .border-surface-container-high { border-color: #2d3c52; }
+  .dark .border-outline                { border-color: #475569; }
+  .dark .border-outline-variant        { border-color: #334155; }
+  .dark .border-tertiary-container     { border-color: #b45309; }
+
+  /* Placeholder text */
+  .dark .placeholder\:text-outline::placeholder { color: #475569; }
+
+  /* Focus ring */
+  .dark .focus\:ring-primary:focus { --tw-ring-color: #22d3ee; }
+
+  /* Shadows */
+  .dark .shadow-card        { box-shadow: 0 4px 20px rgba(0,0,0,0.35); }
+  .dark .card               { box-shadow: 0 4px 20px rgba(0,0,0,0.35); }
+  .dark .shadow-card-hover,
+  .dark .card-hover:hover   { box-shadow: 0 8px 30px rgba(0,0,0,0.45); }
+
+  /* Learning note dark background */
+  .dark .learning-note { background-color: #2d2a1a; }
+
+  /* Header separator */
+  .dark header { border-bottom: 1px solid #243347; }
 }
 
 /* Safe area bottom padding for mobile */

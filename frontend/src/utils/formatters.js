@@ -27,5 +27,5 @@ export function isPositive(value) {
 
 export function changeColorClass(value) {
   if (value == null) return 'text-on-surface-variant'
-  return Number(value) >= 0 ? 'text-green-600' : 'text-error'
+  return Number(value) >= 0 ? 'text-positive' : 'text-error'
 }
