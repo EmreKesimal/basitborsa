@@ -30,7 +30,9 @@ services:
       SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER:-basitborsa}
       SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD:-basitborsa_secret}
       GEMINI_API_KEY: ${GEMINI_API_KEY:-}
-      MARKET_DATA_API_KEY: ${MARKET_DATA_API_KEY:-}
+      MARKET_DATA_PROVIDER: twelve-data
+      MARKET_DATA_API_KEY: ${MARKET_DATA_API_KEY}
+      MARKET_DATA_BASE_URL: https://api.twelvedata.com
       FRONTEND_ORIGIN: ${FRONTEND_ORIGIN:-http://localhost:5173}
     depends_on:
       postgres:

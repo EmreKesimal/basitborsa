@@ -18,7 +18,10 @@
       "Read(//opt/homebrew/Cellar/gh/2.92.0/bin/**)",
       "Bash(ls /Users/emrekesimal/Desktop/basitborsa/basitborsa/frontend/node_modules/.cache/ 2>/dev/null && ls /tmp/ | grep tailwind 2>/dev/null; echo \"---\"; find /Users/emrekesimal/Desktop/basitborsa/basitborsa/frontend -name \"*.css\" -newer /Users/emrekesimal/Desktop/basitborsa/basitborsa/frontend/tailwind.config.js 2>/dev/null | grep -v node_modules | grep -v dist)",
       "Bash(node -e ' *)",
-      "Bash(xargs ls -la)"
+      "Bash(xargs ls -la)",
+      "Bash(./mvnw compile *)",
+      "Bash(mvn --version)",
+      "Bash(mvn compile *)"
     ]
   }
 }
