@@ -18,6 +18,17 @@ services:
       timeout: 5s
       retries: 5
 
+  ai-service:
+    build:
+      context: ./ai-service
+      dockerfile: Dockerfile
+    container_name: basitborsa-ai-service
+    ports:
+      - "8000:8000"
+    environment:
+      GEMINI_API_KEY: ${GEMINI_API_KEY:-}
+      INTERNAL_AI_API_KEY: ${INTERNAL_AI_API_KEY:-local-dev-secret}
+
   backend:
     build:
       context: ./backend
@@ -30,11 +41,17 @@ services:
       SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER:-basitborsa}
       SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD:-basitborsa_secret}
       GEMINI_API_KEY: ${GEMINI_API_KEY:-}
-      MARKET_DATA_API_KEY: ${MARKET_DATA_API_KEY:-}
+      MARKET_DATA_PROVIDER: twelve-data
+      MARKET_DATA_API_KEY: ${MARKET_DATA_API_KEY}
+      MARKET_DATA_BASE_URL: https://api.twelvedata.com
       FRONTEND_ORIGIN: ${FRONTEND_ORIGIN:-http://localhost:5173}
+      AI_SERVICE_BASE_URL: http://ai-service:8000
+      INTERNAL_AI_API_KEY: ${INTERNAL_AI_API_KEY:-local-dev-secret}
     depends_on:
       postgres:
         condition: service_healthy
+      ai-service:
+        condition: service_started
 
   frontend:
     build:

@@ -1,6 +1,6 @@
 import { formatDate, formatPercent } from '../../utils/formatters.js'
 
-export default function StoryPanel({ event }) {
+export default function StoryPanel({ event, aiStory, aiStoryLoading }) {
   if (!event) {
     return (
       <div className="card overflow-hidden">
@@ -40,26 +40,53 @@ export default function StoryPanel({ event }) {
 
         <div className="w-full h-px bg-outline-variant opacity-30" />
 
-        <div>
-          <h5 className="text-label-md text-on-surface-variant mb-1">Ne Oldu?</h5>
-          <p className="text-body-md text-on-surface">{event.shortDescription}</p>
-        </div>
-
-        {event.relatedNews && (
-          <div>
-            <h5 className="text-label-md text-on-surface-variant mb-1">İlgili Gelişmeler</h5>
-            <p className="text-body-md text-on-surface">{event.relatedNews}</p>
+        {/* AI Story Sections */}
+        {aiStoryLoading && (
+          <div className="flex items-center gap-2 text-on-surface-variant text-body-sm">
+            <div className="w-3 h-3 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+            Yapay zekâ açıklaması hazırlanıyor...
           </div>
         )}
 
-        {event.learningNote && (
-          <div className="learning-note mt-2">
-            <span className="material-symbols-outlined text-tertiary-container mt-0.5 text-[20px]">school</span>
-            <div>
-              <p className="text-label-md text-on-tertiary-container mb-1">Buradan ne öğrenmeliyim?</p>
-              <p className="text-body-md text-on-surface-variant">{event.learningNote}</p>
-            </div>
+        {aiStory && !aiStoryLoading && (
+          <div className="flex flex-col gap-3">
+            {aiStory.summary && (
+              <p className="text-body-md text-on-surface font-medium">{aiStory.summary}</p>
+            )}
+            {aiStory.sections?.map((section, i) => (
+              <div key={i}>
+                <h5 className="text-label-md text-primary mb-1">{section.title}</h5>
+                <p className="text-body-sm text-on-surface-variant">{section.content}</p>
+              </div>
+            ))}
           </div>
+        )}
+
+        {/* Fallback static content when no AI story */}
+        {!aiStory && !aiStoryLoading && (
+          <>
+            <div>
+              <h5 className="text-label-md text-on-surface-variant mb-1">Ne Oldu?</h5>
+              <p className="text-body-md text-on-surface">{event.shortDescription}</p>
+            </div>
+
+            {event.relatedNews && (
+              <div>
+                <h5 className="text-label-md text-on-surface-variant mb-1">İlgili Gelişmeler</h5>
+                <p className="text-body-md text-on-surface">{event.relatedNews}</p>
+              </div>
+            )}
+
+            {event.learningNote && (
+              <div className="learning-note mt-2">
+                <span className="material-symbols-outlined text-tertiary-container mt-0.5 text-[20px]">school</span>
+                <div>
+                  <p className="text-label-md text-on-tertiary-container mb-1">Buradan ne öğrenmeliyim?</p>
+                  <p className="text-body-md text-on-surface-variant">{event.learningNote}</p>
+                </div>
+              </div>
+            )}
+          </>
         )}
 
         <p className="text-xs text-outline italic mt-1">

@@ -16,6 +16,11 @@ public class AiController {
         this.aiService = aiService;
     }
 
+    @PostMapping("/chart-story")
+    public ResponseEntity<ChartStoryResponse> chartStory(@Valid @RequestBody ChartStoryRequest request) {
+        return ResponseEntity.ok(aiService.chartStory(request));
+    }
+
     @PostMapping("/explain-event")
     public ResponseEntity<AiExplanationDto> explainEvent(@Valid @RequestBody ExplainEventRequest request) {
         return ResponseEntity.ok(aiService.explainEvent(request));

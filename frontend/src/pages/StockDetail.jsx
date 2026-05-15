@@ -2,12 +2,11 @@ import { useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useAsync } from '../hooks/useAsync.js'
 import { stockService } from '../services/stockService.js'
-import { portfolioService } from '../services/portfolioService.js'
+import { aiService } from '../services/aiService.js'
 import StockChart from '../components/stock/StockChart.jsx'
 import StoryPanel from '../components/stock/StoryPanel.jsx'
 import MetricCard from '../components/stock/MetricCard.jsx'
 import AiTeacherBox from '../components/ai/AiTeacherBox.jsx'
-import ChecklistModal from '../components/portfolio/ChecklistModal.jsx'
 import LearningNote from '../components/learning/LearningNote.jsx'
 import LoadingState from '../components/common/LoadingState.jsx'
 import ErrorState from '../components/common/ErrorState.jsx'
@@ -18,26 +17,29 @@ export default function StockDetail() {
   const navigate = useNavigate()
   const [range, setRange] = useState('30d')
   const [selectedEvent, setSelectedEvent] = useState(null)
-  const [showChecklist, setShowChecklist] = useState(false)
-  const [addMessage, setAddMessage] = useState(null)
+  const [aiStory, setAiStory] = useState(null)
+  const [aiStoryLoading, setAiStoryLoading] = useState(false)
 
   const { data: stock, loading: stockLoading, error: stockError } = useAsync(
     () => stockService.getOne(symbol), [symbol]
   )
-  const { data: priceHistory, loading: pricesLoading, refetch: refetchPrices } = useAsync(
+  const { data: priceHistory, loading: pricesLoading } = useAsync(
     () => stockService.getPrices(symbol, range), [symbol, range]
   )
   const { data: events } = useAsync(() => stockService.getEvents(symbol), [symbol])
 
-  async function handleAddToPortfolio(quantity) {
+  async function handleEventClick(event) {
+    setSelectedEvent(event)
+    setAiStory(null)
+    if (!event) return
+    setAiStoryLoading(true)
     try {
-      await portfolioService.addItem(symbol, quantity)
-      setAddMessage({ type: 'success', text: `${quantity} adet ${symbol} sanal portföyüne eklendi!` })
-    } catch (err) {
-      setAddMessage({ type: 'error', text: err.message })
+      const story = await aiService.chartStory(symbol, event.id)
+      setAiStory(story)
+    } catch {
+      // fallback: StoryPanel shows static event data
     } finally {
-      setShowChecklist(false)
-      setTimeout(() => setAddMessage(null), 4000)
+      setAiStoryLoading(false)
     }
   }
 
@@ -46,7 +48,6 @@ export default function StockDetail() {
 
   return (
     <div className="flex flex-col gap-stack-gap-md">
-      {/* Back */}
       <button
         onClick={() => navigate('/stocks')}
         className="flex items-center gap-unit text-outline hover:text-on-surface-variant transition-colors text-label-md w-fit"
@@ -54,17 +55,6 @@ export default function StockDetail() {
         <span className="material-symbols-outlined text-[18px]">arrow_back</span>
         Tüm Hisseler
       </button>
-
-      {/* Add success/error message */}
-      {addMessage && (
-        <div className={`p-3 rounded-xl text-body-md font-semibold text-center ${
-          addMessage.type === 'success'
-            ? 'bg-green-50 text-green-700 border border-green-200'
-            : 'bg-error-container text-on-error-container border border-error'
-        }`}>
-          {addMessage.text}
-        </div>
-      )}
 
       <div className="flex flex-col lg:flex-row gap-stack-gap-lg">
         {/* Left column */}
@@ -94,6 +84,9 @@ export default function StockDetail() {
               </div>
             </div>
             <p className="text-body-md text-on-surface-variant">{stock?.description}</p>
+            {stock?.dataSource && (
+              <p className="text-xs text-outline mt-2 italic">{stock.disclaimer}</p>
+            )}
           </div>
 
           {/* Learning note */}
@@ -108,7 +101,7 @@ export default function StockDetail() {
             <StockChart
               priceHistory={priceHistory}
               events={events}
-              onEventClick={setSelectedEvent}
+              onEventClick={handleEventClick}
               selectedRange={range}
               onRangeChange={setRange}
             />
@@ -135,7 +128,7 @@ export default function StockDetail() {
         {/* Right sidebar */}
         <aside className="w-full lg:w-80 flex flex-col gap-stack-gap-md">
           {/* Story Panel */}
-          <StoryPanel event={selectedEvent} />
+          <StoryPanel event={selectedEvent} aiStory={aiStory} aiStoryLoading={aiStoryLoading} />
 
           {/* Events list */}
           {events?.length > 0 && (
@@ -145,7 +138,7 @@ export default function StockDetail() {
                 {events.map((e) => (
                   <button
                     key={e.id}
-                    onClick={() => setSelectedEvent(e)}
+                    onClick={() => handleEventClick(e)}
                     className={`text-left p-2 rounded-lg transition-colors hover:bg-surface-container-low ${
                       selectedEvent?.id === e.id ? 'bg-surface-container-low' : ''
                     }`}
@@ -167,31 +160,27 @@ export default function StockDetail() {
             </div>
           )}
 
-          {/* Add to portfolio */}
+          {/* Understanding Checklist */}
           <div className="card p-stack-gap-md flex flex-col gap-stack-gap-sm">
-            <h3 className="text-headline-md font-semibold text-on-surface">Sanal Portföy</h3>
-            <p className="text-body-md text-on-surface-variant">
-              Bu hisseyi sanal portföyüne eklemeden önce kontrol listesini gözden geçir.
-            </p>
-            <button
-              onClick={() => setShowChecklist(true)}
-              className="btn-primary w-full"
-            >
-              <span className="material-symbols-outlined text-[18px]">add_circle</span>
-              Portföye Ekle
-            </button>
-            <p className="disclaimer">Bu işlem sadece sanal portföy içindir. Gerçek para içermez.</p>
+            <h3 className="text-headline-md font-semibold text-on-surface">Anlama Kontrolü</h3>
+            <p className="text-body-sm text-on-surface-variant">Devam etmeden önce kendine sor:</p>
+            <ul className="flex flex-col gap-2">
+              {[
+                'Bu şirketin ne iş yaptığını biliyor musun?',
+                'Grafiğin hikâyesini inceledin mi?',
+                'Temel göstergelerin ne anlama geldiğini biliyor musun?',
+                'Bu fiyat hareketinin neden olmuş olabileceğini açıklayabiliyor musun?',
+              ].map((q) => (
+                <li key={q} className="flex items-start gap-2 text-body-sm text-on-surface-variant">
+                  <span className="material-symbols-outlined text-outline text-[16px] mt-0.5">check_box_outline_blank</span>
+                  {q}
+                </li>
+              ))}
+            </ul>
+            <p className="disclaimer">Bu platform yatırım tavsiyesi vermez. Eğitim ve demo amaçlıdır.</p>
           </div>
         </aside>
       </div>
-
-      {showChecklist && (
-        <ChecklistModal
-          stock={stock}
-          onConfirm={handleAddToPortfolio}
-          onClose={() => setShowChecklist(false)}
-        />
-      )}
     </div>
   )
 }
