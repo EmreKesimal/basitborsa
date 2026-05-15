@@ -1,0 +1,26 @@
+{
+  "fk": {
+    "aliases": ["F/K", "FK", "P/E", "price earnings ratio", "fiyat kazanç"],
+    "title": "F/K Oranı",
+    "simpleExplanation": "F/K oranı, bir şirketin fiyatının kârına göre nasıl değerlendiğini anlamaya yardımcı olan bir göstergedir.",
+    "whyItMatters": "Yeni başlayanlar için şirketin kârına göre piyasa tarafından nasıl fiyatlandığını anlamaya yardımcı olabilir.",
+    "example": "İki benzer şirketten birinin F/K oranı daha yüksekse, piyasa o şirketten daha fazla büyüme bekliyor olabilir.",
+    "warning": "F/K oranı tek başına yatırım kararı vermek için yeterli değildir."
+  },
+  "temettu": {
+    "aliases": ["temettü", "temettu", "dividend", "kar payı"],
+    "title": "Temettü",
+    "simpleExplanation": "Temettü, bir şirketin elde ettiği kârın bir kısmını ortaklarıyla paylaşmasıdır.",
+    "whyItMatters": "Yeni başlayanlar için bazı şirketlerin kâr dağıtımı yapabileceğini anlamaya yardımcı olur.",
+    "example": "Bir şirket yıl sonunda kârının bir bölümünü hisse sahiplerine dağıtabilir.",
+    "warning": "Temettü ödemesi garanti değildir ve şirket kararlarına göre değişebilir."
+  },
+  "volatilite": {
+    "aliases": ["volatilite", "volatility", "oynaklık"],
+    "title": "Volatilite",
+    "simpleExplanation": "Volatilite, bir fiyatın belirli bir dönemde ne kadar dalgalandığını anlatır.",
+    "whyItMatters": "Yeni başlayanlar için fiyat hareketlerinin ne kadar sakin veya hareketli olduğunu anlamaya yardımcı olur.",
+    "example": "Bir hisse kısa sürede çok yükselip düşüyorsa volatilitesi yüksek olabilir.",
+    "warning": "Volatilite tek başına yatırım kararı vermek için yeterli değildir."
+  }
+}
