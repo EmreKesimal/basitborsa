@@ -1,8 +1,9 @@
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends
 from pydantic import BaseModel
 from typing import List, Optional
 import json
 from pathlib import Path
+from app.core.security import verify_internal_api_key
 
 router = APIRouter(prefix="/ai", tags=["AI"])
 
@@ -48,7 +49,7 @@ def find_term(term: str):
 
 
 @router.post("/chart-story")
-def chart_story(request: ChartStoryRequest):
+def chart_story(request: ChartStoryRequest, _: bool = Depends(verify_internal_api_key)):
     return {
         "summary": f"{request.symbol} için seçilen dönemde dikkat çeken bir fiyat hareketi görülüyor.",
         "sections": [
@@ -78,7 +79,7 @@ def chart_story(request: ChartStoryRequest):
 
 
 @router.post("/explain-term")
-def explain_term(request: TermExplanationRequest):
+def explain_term(request: TermExplanationRequest, _: bool = Depends(verify_internal_api_key)):
     term_data = find_term(request.term)
 
     if term_data:
