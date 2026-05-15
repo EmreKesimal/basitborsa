@@ -1,175 +1,200 @@
-# Ruflo — Claude Code Configuration
+# BasitBorsa — Claude Project Context
 
-## Rules
+## Project
+BasitBorsa is an AI-assisted stock market learning platform for beginners.
 
-- Do what has been asked; nothing more, nothing less
-- NEVER create files unless absolutely necessary — prefer editing existing files
-- NEVER create documentation files unless explicitly requested
-- NEVER save working files or tests to root — use `/src`, `/tests`, `/docs`, `/config`, `/scripts`
-- ALWAYS read a file before editing it
-- NEVER commit secrets, credentials, or .env files
-- Keep files under 500 lines
-- Validate input at system boundaries
+Not a trading platform.
+No investment advice.
+No buy/sell recommendations.
+No virtual portfolio in MVP.
 
-## Agent Comms (SendMessage-First Coordination)
+Core slogan:
+Hisseyi alma, önce anla.
 
-Named agents coordinate via `SendMessage`, not polling or shared state.
+## Stack
+- Frontend: React + Vite + Tailwind
+- Backend: Spring Boot + PostgreSQL
+- AI Service: Python FastAPI
+- AI Provider: Gemini
+- Market Data: Twelve Data through Spring Boot only
 
-```
-Lead (you) ←→ architect ←→ developer ←→ tester ←→ reviewer
-              (named agents message each other directly)
-```
+## Important Architecture
+Frontend only calls Spring Boot.
+Spring Boot owns market data, cache, fallback, AI context.
+Python AI service only handles Gemini prompts, safety, structured educational responses.
+Python must not fetch market data.
+Gemini API key only lives in ai-service.
+Twelve Data key only lives in backend.
 
-### Spawning a Coordinated Team
+## Existing API Contract
+Do not break:
 
-```javascript
-// ALL agents in ONE message, each knows WHO to message next
-Agent({ prompt: "Research the codebase. SendMessage findings to 'architect'.",
-  subagent_type: "researcher", name: "researcher", run_in_background: true })
-Agent({ prompt: "Wait for 'researcher'. Design solution. SendMessage to 'coder'.",
-  subagent_type: "system-architect", name: "architect", run_in_background: true })
-Agent({ prompt: "Wait for 'architect'. Implement it. SendMessage to 'tester'.",
-  subagent_type: "coder", name: "coder", run_in_background: true })
-Agent({ prompt: "Wait for 'coder'. Write tests. SendMessage results to 'reviewer'.",
-  subagent_type: "tester", name: "tester", run_in_background: true })
-Agent({ prompt: "Wait for 'tester'. Review code quality and security.",
-  subagent_type: "reviewer", name: "reviewer", run_in_background: true })
+GET /api/stocks
+GET /api/stocks/{symbol}
+GET /api/stocks/{symbol}/prices?range=30d
+GET /api/stocks/{symbol}/events
 
-// Kick off the pipeline
-SendMessage({ to: "researcher", summary: "Start", message: "[task context]" })
-```
+AI endpoints:
 
-### Patterns
+POST /api/ai/chart-story
+POST /api/ai/explain-event
+POST /api/ai/explain-term
+POST /api/ai/explain-stock
 
-| Pattern | Flow | Use When |
-|---------|------|----------|
-| **Pipeline** | A → B → C → D | Sequential dependencies (feature dev) |
-| **Fan-out** | Lead → A, B, C → Lead | Independent parallel work (research) |
-| **Supervisor** | Lead ↔ workers | Ongoing coordination (complex refactor) |
+## Protected Files
+Never delete, rename, move, overwrite, or refactor files/folders containing:
 
-### Rules
+- ruflo
+- Ruflo
+- RUFLO
+- ruFLO
 
-- ALWAYS name agents — `name: "role"` makes them addressable
-- ALWAYS include comms instructions in prompts — who to message, what to send
-- Spawn ALL agents in ONE message with `run_in_background: true`
-- After spawning: STOP, tell user what's running, wait for results
-- NEVER poll status — agents message back or complete automatically
+Before big changes run:
 
-## Swarm & Routing
+find . -iname "*ruflo*" -print
 
-### Config
-- **Topology**: hierarchical-mesh (anti-drift)
-- **Max Agents**: 15
-- **Memory**: hybrid
-- **HNSW**: Enabled
-- **Neural**: Enabled
+Final diff must not include ruflo files.
 
-```bash
-npx @claude-flow/cli@latest swarm init --topology hierarchical --max-agents 8 --strategy specialized
-```
+## Current AI Service Status
+Python AI service runs on:
 
-### Agent Routing
+http://localhost:8000
 
-| Task | Agents | Topology |
-|------|--------|----------|
-| Bug Fix | researcher, coder, tester | hierarchical |
-| Feature | architect, coder, tester, reviewer | hierarchical |
-| Refactor | architect, coder, reviewer | hierarchical |
-| Performance | perf-engineer, coder | hierarchical |
-| Security | security-architect, auditor | hierarchical |
+Start command:
 
-### When to Swarm
-- **YES**: 3+ files, new features, cross-module refactoring, API changes, security, performance
-- **NO**: single file edits, 1-2 line fixes, docs updates, config changes, questions
+cd ai-service
+source .venv/bin/activate
+python -m uvicorn app.main:app --reload --reload-dir app --port 8000
 
-### 3-Tier Model Routing
+Health test:
 
-| Tier | Handler | Use Cases |
-|------|---------|-----------|
-| 1 | Agent Booster (WASM) | Simple transforms — skip LLM, use Edit directly |
-| 2 | Haiku | Simple tasks, low complexity |
-| 3 | Sonnet/Opus | Architecture, security, complex reasoning |
+curl http://localhost:8000/health
 
-## Memory & Learning
+Internal API key:
 
-### Before Any Task
-```bash
-npx @claude-flow/cli@latest memory search --query "[task keywords]" --namespace patterns
-npx @claude-flow/cli@latest hooks route --task "[task description]"
-```
+INTERNAL_AI_API_KEY=local-dev-secret
 
-### After Success
-```bash
-npx @claude-flow/cli@latest memory store --namespace patterns --key "[name]" --value "[what worked]"
-npx @claude-flow/cli@latest hooks post-task --task-id "[id]" --success true --store-results true
-```
+## Gemini Status
+Important discovery:
 
-### MCP Tools (use `ToolSearch("keyword")` to discover)
+gemini-2.0-flash returns 429 quota error.
+gemini-1.5-flash returns 404 on current API.
+gemini-2.5-flash-lite works.
 
-| Category | Key Tools |
-|----------|-----------|
-| **Memory** | `memory_store`, `memory_search`, `memory_search_unified` |
-| **Bridge** | `memory_import_claude`, `memory_bridge_status` |
-| **Swarm** | `swarm_init`, `swarm_status`, `swarm_health` |
-| **Agents** | `agent_spawn`, `agent_list`, `agent_status` |
-| **Hooks** | `hooks_route`, `hooks_post-task`, `hooks_worker-dispatch` |
-| **Security** | `aidefence_scan`, `aidefence_is_safe`, `aidefence_has_pii` |
-| **Hive-Mind** | `hive-mind_init`, `hive-mind_consensus`, `hive-mind_spawn` |
+Use:
 
-### Background Workers
+GEMINI_MODEL=gemini-2.5-flash-lite
 
-| Worker | When |
-|--------|------|
-| `audit` | After security changes |
-| `optimize` | After performance work |
-| `testgaps` | After adding features |
-| `map` | Every 5+ file changes |
-| `document` | After API changes |
+Working direct Gemini test:
 
-```bash
-npx @claude-flow/cli@latest hooks worker dispatch --trigger audit
-```
+curl "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent" \
+-H "x-goog-api-key: $GEMINI_API_KEY" \
+-H "Content-Type: application/json" \
+-X POST \
+-d '{
+"contents": [
+{
+"parts": [
+{
+"text": "Sadece şu kelimeyi yaz: çalışıyor"
+}
+]
+}
+]
+}'
 
-## Agents
+Expected text:
+çalışıyor
 
-**Core**: `coder`, `reviewer`, `tester`, `planner`, `researcher`
-**Architecture**: `system-architect`, `backend-dev`, `mobile-dev`
-**Security**: `security-architect`, `security-auditor`
-**Performance**: `performance-engineer`, `perf-analyzer`
-**Coordination**: `hierarchical-coordinator`, `mesh-coordinator`, `adaptive-coordinator`
-**GitHub**: `pr-manager`, `code-review-swarm`, `issue-tracker`, `release-manager`
+## AI Chart Story Status
+Direct Python chart-story works and returns:
 
-Any string works as a custom agent type.
+sourceType=ai_generated
 
-## Build & Test
+Test:
 
-- ALWAYS run tests after code changes
-- ALWAYS verify build succeeds before committing
+curl -X POST http://localhost:8000/ai/chart-story \
+-H "Content-Type: application/json" \
+-H "X-Internal-Api-Key: local-dev-secret" \
+-d '{
+"symbol":"THYAO",
+"companyName":"Türk Hava Yolları",
+"sector":"Havacılık",
+"priceContext":{
+"range":"30d",
+"latestClose":305.4,
+"previousClose":298.2,
+"changePercent":2.41,
+"highestPrice":312.8,
+"lowestPrice":284.1,
+"volumeTrend":"above_average",
+"dataSource":"CACHED"
+},
+"selectedEvent":{
+"eventDate":"2025-03-11",
+"eventTitle":"Güçlü yükseliş",
+"priceChangePercent":5.9,
+"relatedNews":["Yolcu sayılarında artış açıklandı"],
+"learningNote":"Havacılık hisseleri yolcu sayısı, yakıt maliyeti, döviz kuru ve sektör beklentilerinden etkilenebilir."
+},
+"userLevel":"beginner",
+"language":"tr"
+}'
 
-```bash
-npm run build && npm test
-```
+## Current Next Step
+Test and finalize Spring Boot -> Python AI integration.
 
-## CLI Quick Reference
+Run:
 
-```bash
-npx @claude-flow/cli@latest init --wizard           # Setup
-npx @claude-flow/cli@latest swarm init --v3-mode     # Start swarm
-npx @claude-flow/cli@latest memory search --query "" # Vector search
-npx @claude-flow/cli@latest hooks route --task ""    # Route to agent
-npx @claude-flow/cli@latest doctor --fix             # Diagnostics
-npx @claude-flow/cli@latest security scan            # Security scan
-npx @claude-flow/cli@latest performance benchmark    # Benchmarks
-```
+curl -X POST http://localhost:8080/api/ai/chart-story \
+-H "Content-Type: application/json" \
+-d '{"symbol":"THYAO"}'
 
-26 commands, 140+ subcommands. Use `--help` on any command for details.
+Expected:
+sourceType=ai_generated
 
-## Setup
+If Spring returns fallback but Python direct test works:
+- check AI_SERVICE_BASE_URL
+- check INTERNAL_AI_API_KEY
+- check Spring payload shape
+- check Spring fallback/cache logic
 
-```bash
-claude mcp add claude-flow -- npx -y @claude-flow/cli@latest
-npx @claude-flow/cli@latest daemon start
-npx @claude-flow/cli@latest doctor --fix
-```
+## Required Env
 
-**Agent tool** handles execution (agents, files, code, git). **MCP tools** handle coordination (swarm, memory, hooks). **CLI** is the same via Bash.
+backend:
+
+TWELVE_DATA_API_KEY=
+TWELVE_DATA_BASE_URL=
+MARKET_DATA_PROVIDER=TWELVE_DATA
+AI_SERVICE_BASE_URL=http://localhost:8000
+INTERNAL_AI_API_KEY=local-dev-secret
+
+ai-service:
+
+GEMINI_API_KEY=
+GEMINI_MODEL=gemini-2.5-flash-lite
+INTERNAL_AI_API_KEY=local-dev-secret
+
+## Language Rules
+AI answers must be:
+- Turkish
+- beginner-friendly
+- cautious
+- educational
+- no investment advice
+- no buy/sell recommendation
+- no certain prediction
+
+Prefer:
+- katkı sağlamış olabilir
+- ilişkili olabilir
+- yatırımcı algısını etkilemiş olabilir
+- tek ve kesin nedeni olmayabilir
+
+Avoid:
+- bu yüzden yükseldi
+- kesin yükselir
+- alınmalı
+- satılmalı
+- kazandırır
+- alım fırsatı

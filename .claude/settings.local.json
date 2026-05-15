@@ -21,7 +21,16 @@
       "Bash(xargs ls -la)",
       "Bash(./mvnw compile *)",
       "Bash(mvn --version)",
-      "Bash(mvn compile *)"
+      "Bash(mvn compile *)",
+      "Bash(/Users/emrekesimal/Desktop/basitborsa/basitborsa/backend/mvnw compile *)",
+      "Bash(python3 -c ' *)",
+      "Bash(pip3 install *)",
+      "Bash(python3.11 --version)",
+      "Bash(python3.12 --version)",
+      "Bash(python3.10 --version)",
+      "Bash(python3.11 -m pip install google-generativeai --quiet)",
+      "Bash(python3.11 smoke_test_gemini.py)",
+      "Bash(python3.11 -c ' *)"
     ]
   }
 }

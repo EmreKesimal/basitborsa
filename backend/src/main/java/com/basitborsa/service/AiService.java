@@ -1,8 +1,14 @@
 package com.basitborsa.service;
 
+import com.basitborsa.client.PythonAiClient;
 import com.basitborsa.dto.ai.*;
 import com.basitborsa.entity.AiExplanation;
+import com.basitborsa.entity.Stock;
+import com.basitborsa.entity.StockEvent;
+import com.basitborsa.exception.ResourceNotFoundException;
 import com.basitborsa.repository.AiExplanationRepository;
+import com.basitborsa.repository.StockEventRepository;
+import com.basitborsa.repository.StockRepository;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.slf4j.Logger;
@@ -26,16 +32,28 @@ public class AiService {
     private final WebClient geminiWebClient;
     private final AiExplanationRepository aiExplanationRepository;
     private final ObjectMapper objectMapper;
+    private final PythonAiClient pythonAiClient;
+    private final AiContextBuilder aiContextBuilder;
+    private final StockRepository stockRepository;
+    private final StockEventRepository stockEventRepository;
 
     @Value("${gemini.api.key:}")
     private String geminiApiKey;
 
     public AiService(WebClient geminiWebClient,
                      AiExplanationRepository aiExplanationRepository,
-                     ObjectMapper objectMapper) {
+                     ObjectMapper objectMapper,
+                     PythonAiClient pythonAiClient,
+                     AiContextBuilder aiContextBuilder,
+                     StockRepository stockRepository,
+                     StockEventRepository stockEventRepository) {
         this.geminiWebClient = geminiWebClient;
         this.aiExplanationRepository = aiExplanationRepository;
         this.objectMapper = objectMapper;
+        this.pythonAiClient = pythonAiClient;
+        this.aiContextBuilder = aiContextBuilder;
+        this.stockRepository = stockRepository;
+        this.stockEventRepository = stockEventRepository;
     }
 
     @Transactional
@@ -91,6 +109,24 @@ public class AiService {
 
         saveExplanation(cacheKey, AiExplanation.ExplanationType.STOCK, prompt, response);
         return parseStoredResponse(response, false);
+    }
+
+    @Transactional(readOnly = true)
+    public ChartStoryResponse chartStory(ChartStoryRequest request) {
+        Stock stock = stockRepository.findBySymbol(request.symbol().toUpperCase())
+                .orElseThrow(() -> new ResourceNotFoundException("Hisse bulunamadı: " + request.symbol()));
+
+        StockEvent event = null;
+        if (request.eventId() != null) {
+            event = stockEventRepository.findById(request.eventId()).orElse(null);
+        }
+        if (event == null) {
+            event = stockEventRepository.findByStockOrderByEventDateAsc(stock)
+                    .stream().reduce((a, b) -> b).orElse(null);
+        }
+
+        Map<String, Object> context = aiContextBuilder.buildChartStoryContext(stock, event);
+        return pythonAiClient.chartStory(context);
     }
 
     private String callGemini(String prompt) {
