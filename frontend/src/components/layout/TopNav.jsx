@@ -5,7 +5,6 @@ const navItems = [
   { to: '/', label: 'Ana Sayfa', icon: 'home' },
   { to: '/stocks', label: 'Hisseler', icon: 'show_chart' },
   { to: '/learn', label: 'Öğren', icon: 'school' },
-  { to: '/portfolio', label: 'Portföyüm', icon: 'account_balance_wallet' },
 ]
 
 export default function TopNav() {
@@ -13,30 +12,32 @@ export default function TopNav() {
   const [isDark, setIsDark] = useDarkMode()
 
   return (
-    <header className="bg-surface shadow-card sticky top-0 z-50">
-      <div className="flex items-center justify-between px-container-margin-mobile h-16 w-full max-w-content mx-auto">
+    <header className="bg-surface-container-lowest border-b border-surface-container-high sticky top-0 z-50">
+      <div className="flex items-center justify-between px-4 sm:px-6 h-16 w-full max-w-7xl mx-auto">
         <button
           onClick={() => navigate('/')}
-          className="flex items-center gap-unit hover:opacity-80 transition-opacity"
+          className="flex items-center gap-2 hover:opacity-80 transition-opacity"
         >
-          <span className="material-symbols-outlined text-primary text-2xl" style={{ fontVariationSettings: "'FILL' 1" }}>
-            account_balance
-          </span>
-          <span className="font-bold text-headline-md text-primary">BasitBorsa</span>
+          <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center">
+            <span className="material-symbols-outlined text-on-primary text-[18px]" style={{ fontVariationSettings: "'FILL' 1" }}>
+              account_balance
+            </span>
+          </div>
+          <span className="font-bold text-headline-md text-on-surface">BasitBorsa</span>
         </button>
 
-        <div className="flex items-center gap-stack-gap-md">
-          <nav className="hidden md:flex items-center gap-stack-gap-md">
+        <div className="flex items-center gap-6">
+          <nav className="hidden md:flex items-center gap-6">
             {navItems.map((item) => (
               <NavLink
                 key={item.to}
                 to={item.to}
                 end={item.to === '/'}
                 className={({ isActive }) =>
-                  `text-label-md font-semibold transition-opacity hover:opacity-80 pb-1 ${
+                  `text-label-md transition-colors ${
                     isActive
-                      ? 'text-primary border-b-2 border-primary'
-                      : 'text-on-surface-variant'
+                      ? 'text-primary font-bold'
+                      : 'text-on-surface-variant hover:text-on-surface'
                   }`
                 }
               >

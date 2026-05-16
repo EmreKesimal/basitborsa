@@ -4,6 +4,7 @@ import { stockService } from '../services/stockService.js'
 import StockCard from '../components/stock/StockCard.jsx'
 import LoadingState from '../components/common/LoadingState.jsx'
 import ErrorState from '../components/common/ErrorState.jsx'
+import EmptyState from '../components/common/EmptyState.jsx'
 
 export default function Stocks() {
   const [query, setQuery] = useState('')
@@ -16,40 +17,62 @@ export default function Stocks() {
   )
 
   return (
-    <div className="flex flex-col gap-stack-gap-md">
-      <div>
-        <h1 className="text-headline-lg font-semibold text-on-surface">Hisseler</h1>
-        <p className="text-body-md text-on-surface-variant mt-1">
-          Seçili BIST hisselerini inceleyin. Gecikmeli/gün sonu verileri kullanılmaktadır.
+    <div className="flex flex-col gap-8">
+      {/* Header */}
+      <div className="flex flex-col gap-1">
+        <h1 className="text-headline-lg font-bold text-on-surface">Hisseler</h1>
+        <p className="text-body-md text-on-surface-variant">
+          Seçili BIST hisselerini inceleyin — gecikmeli/gün sonu verileri kullanılmaktadır.
         </p>
       </div>
 
       {/* Search */}
-      <div className="relative">
-        <span className="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-outline">search</span>
+      <div className="relative max-w-xl">
+        <span className="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-outline text-[18px]">
+          search
+        </span>
         <input
           type="text"
           value={query}
           onChange={(e) => setQuery(e.target.value)}
-          placeholder="Hisse veya şirket adıyla ara..."
-          className="w-full h-12 pl-12 pr-4 bg-surface-container-low border-none rounded-xl text-body-md text-on-surface placeholder:text-outline focus:ring-2 focus:ring-primary outline-none"
+          placeholder="Hisse kodu veya şirket adıyla ara..."
+          className="w-full h-12 pl-11 pr-4 bg-surface-container-lowest border border-surface-container-high rounded-xl text-body-md text-on-surface placeholder:text-outline focus:ring-2 focus:ring-primary focus:border-transparent outline-none shadow-card"
         />
+        {query && (
+          <button
+            onClick={() => setQuery('')}
+            className="absolute right-3 top-1/2 -translate-y-1/2 text-outline hover:text-on-surface transition-colors"
+          >
+            <span className="material-symbols-outlined text-[18px]">close</span>
+          </button>
+        )}
       </div>
 
-      {loading && <LoadingState message="Hisseler yükleniyor..." />}
+      {/* States */}
+      {loading && (
+        <LoadingState
+          message="Hisseler yükleniyor..."
+          lottie="/animations/finance-chart.json"
+        />
+      )}
       {error && <ErrorState message={error} onRetry={refetch} />}
 
+      {/* Grid */}
       {!loading && !error && (
-        <div className="flex flex-col gap-stack-gap-sm">
+        <>
           {filtered?.length === 0 ? (
-            <div className="text-center py-12 text-on-surface-variant">
-              <span className="material-symbols-outlined text-4xl">search_off</span>
-              <p className="mt-2 text-body-md">"{query}" için sonuç bulunamadı.</p>
-            </div>
+            <EmptyState
+              icon="search_off"
+              message={query ? `"${query}" için sonuç bulunamadı.` : 'Hisse bulunamadı.'}
+            />
           ) : (
-            filtered?.map((stock) => <StockCard key={stock.symbol} stock={stock} />)
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+              {filtered?.map((stock) => (
+                <StockCard key={stock.symbol} stock={stock} />
+              ))}
+            </div>
           )}
-        </div>
+        </>
       )}
 
       <p className="text-xs text-outline text-center">
