@@ -1,5 +1,6 @@
 import { useNavigate } from 'react-router-dom'
 import { formatCurrency, formatPercent, changeColorClass } from '../../utils/formatters.js'
+import DataSourceBadge from '../common/DataSourceBadge.jsx'
 
 export default function StockCard({ stock }) {
   const navigate = useNavigate()
@@ -7,35 +8,69 @@ export default function StockCard({ stock }) {
 
   return (
     <div
-      className="card card-hover p-stack-gap-md flex items-center justify-between cursor-pointer"
+      className="card card-hover cursor-pointer flex flex-col overflow-hidden"
       onClick={() => navigate(`/stocks/${stock.symbol}`)}
     >
-      <div className="flex items-center gap-stack-gap-sm">
-        <div className="w-12 h-12 rounded-full bg-surface-container flex items-center justify-center text-primary font-bold text-label-md flex-shrink-0">
-          {stock.symbol.slice(0, 3)}
-        </div>
-        <div>
-          <h3 className="text-headline-md font-semibold text-on-surface">{stock.symbol}</h3>
-          <p className="text-body-md text-on-surface-variant">{stock.companyName}</p>
-          <span className="text-xs text-outline bg-surface-container-low px-2 py-0.5 rounded-full">
-            {stock.sector}
-          </span>
-        </div>
-      </div>
+      {/* Top accent */}
+      <div className={`h-1 w-full ${isUp ? 'bg-positive' : 'bg-error'}`} />
 
-      <div className="text-right flex-shrink-0">
-        <div className="text-headline-md font-semibold text-on-surface">
-          {formatCurrency(stock.currentPrice)}
+      <div className="p-5 flex flex-col gap-4 flex-1">
+        {/* Header row */}
+        <div className="flex items-start justify-between gap-2">
+          <div className="flex items-center gap-3">
+            <div className="w-11 h-11 rounded-xl bg-surface-container-low flex items-center justify-center flex-shrink-0">
+              <span className="text-xs font-bold text-primary leading-none text-center">
+                {stock.symbol.slice(0, 4)}
+              </span>
+            </div>
+            <div className="min-w-0">
+              <h3 className="text-headline-md font-bold text-on-surface leading-tight truncate">
+                {stock.symbol}
+              </h3>
+              <p className="text-xs text-on-surface-variant truncate">{stock.companyName}</p>
+            </div>
+          </div>
+          <DataSourceBadge source={stock.dataSource} />
         </div>
-        <div className={`text-label-md flex items-center justify-end gap-1 ${changeColorClass(stock.dailyChangePercent)}`}>
-          <span className="material-symbols-outlined text-[14px]">
-            {isUp ? 'trending_up' : 'trending_down'}
-          </span>
-          {formatPercent(stock.dailyChangePercent)}
+
+        {/* Sector */}
+        <span className="text-xs text-outline bg-surface-container-low px-2.5 py-1 rounded-full w-fit">
+          {stock.sector}
+        </span>
+
+        {/* Description */}
+        {stock.description && (
+          <p className="text-body-md text-on-surface-variant line-clamp-2 flex-1">
+            {stock.description}
+          </p>
+        )}
+
+        {/* Price row */}
+        <div className="flex items-end justify-between pt-2 border-t border-surface-container-high">
+          <div>
+            <p className="text-xs text-outline mb-0.5">Son Fiyat</p>
+            <p className="text-headline-md font-bold text-on-surface">
+              {formatCurrency(stock.currentPrice)}
+            </p>
+          </div>
+          <div className="text-right">
+            <div className={`flex items-center gap-1 text-label-md ${changeColorClass(stock.dailyChangePercent)}`}>
+              <span className="material-symbols-outlined text-[14px]">
+                {isUp ? 'trending_up' : 'trending_down'}
+              </span>
+              {formatPercent(stock.dailyChangePercent)}
+            </div>
+            <p className="text-xs text-outline mt-0.5">Bugün</p>
+          </div>
         </div>
-        <button className="mt-2 text-xs text-primary font-semibold hover:opacity-80 transition-opacity flex items-center gap-1 ml-auto">
-          İncele
-          <span className="material-symbols-outlined text-[14px]">arrow_forward</span>
+
+        {/* CTA */}
+        <button
+          className="w-full mt-1 py-2 rounded-lg border border-primary text-primary text-label-md font-semibold hover:bg-primary hover:text-on-primary transition-colors flex items-center justify-center gap-1"
+          onClick={(e) => { e.stopPropagation(); navigate(`/stocks/${stock.symbol}`) }}
+        >
+          Hisseyi İncele
+          <span className="material-symbols-outlined text-[16px]">arrow_forward</span>
         </button>
       </div>
     </div>
