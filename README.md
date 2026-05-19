@@ -1,4 +1,6 @@
-# BasitBorsa  Deploy Link: https://basitborsa-frontend.onrender.com 
+# BasitBorsa  
+
+Demo Link: https://basitborsa-frontend.onrender.com //Gemini Api key Kullanım aşımında işleyiş doğru gözlemlenememektedir.
 
 > **Borsayı anlamanın en basit yolu**
 
