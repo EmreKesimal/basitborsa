@@ -74,11 +74,23 @@ public class StockController {
         return ResponseEntity.ok(rows);
     }
 
+    @GetMapping("/{symbol}/news/nearest")
+    public ResponseEntity<List<StockNewsDto>> getNewsNearest(
+            @PathVariable String symbol,
+            @RequestParam(name = "date", required = false)
+                @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date,
+            @RequestParam(defaultValue = "5") int limit) {
+        List<StockNewsDto> rows = newsService.findNearestRelevantNews(symbol, date, limit).stream()
+                .map(StockController::toDto)
+                .toList();
+        return ResponseEntity.ok(rows);
+    }
+
     private static StockNewsDto toDto(StockNews n) {
         return new StockNewsDto(
                 n.getId(), n.getSymbol(), n.getTitle(), n.getSummary(),
                 n.getSourceName(), n.getSourceUrl(), n.getPublishedAt(),
-                n.getCategory(), n.getSourceType());
+                n.getCategory(), n.getSourceType(), n.getFeedCategory());
     }
 
     private int parseRange(String range) {

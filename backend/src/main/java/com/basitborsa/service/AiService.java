@@ -1,6 +1,7 @@
 package com.basitborsa.service;
 
 import com.basitborsa.client.PythonAiClient;
+import com.basitborsa.config.ActiveSymbolsConfig;
 import com.basitborsa.dto.ai.*;
 import com.basitborsa.entity.AiExplanation;
 import com.basitborsa.entity.Stock;
@@ -31,6 +32,7 @@ public class AiService {
     private final PythonAiClient pythonAiClient;
     private final AiContextBuilder aiContextBuilder;
     private final StockRepository stockRepository;
+    private final ActiveSymbolsConfig activeSymbols;
     private final ObjectProvider<MarketDataSyncService> syncServiceProvider;
 
     public AiService(AiExplanationRepository aiExplanationRepository,
@@ -38,12 +40,14 @@ public class AiService {
                      PythonAiClient pythonAiClient,
                      AiContextBuilder aiContextBuilder,
                      StockRepository stockRepository,
+                     ActiveSymbolsConfig activeSymbols,
                      ObjectProvider<MarketDataSyncService> syncServiceProvider) {
         this.aiExplanationRepository = aiExplanationRepository;
         this.objectMapper = objectMapper;
         this.pythonAiClient = pythonAiClient;
         this.aiContextBuilder = aiContextBuilder;
         this.stockRepository = stockRepository;
+        this.activeSymbols = activeSymbols;
         this.syncServiceProvider = syncServiceProvider;
     }
 
@@ -113,6 +117,10 @@ public class AiService {
         Stock stock = stockRepository.findBySymbol(request.symbol().toUpperCase())
                 .orElseThrow(() -> new ResourceNotFoundException("Hisse bulunamadı: " + request.symbol()));
 
+        if (!activeSymbols.isMarketActive(stock.getSymbol())) {
+            return demoLimitedResponse(stock.getSymbol());
+        }
+
         Map<String, Object> context = aiContextBuilder.buildChartStoryContext(stock, request.date());
         if (context == null) {
             // No real market data — trigger sync and return unavailable
@@ -120,6 +128,24 @@ public class AiService {
             return unavailableResponse(stock.getSymbol());
         }
         return pythonAiClient.chartStory(context);
+    }
+
+    private ChartStoryResponse demoLimitedResponse(String symbol) {
+        return new ChartStoryResponse(
+                ActiveSymbolsConfig.DEMO_LIMITED_CHART_STORY,
+                List.of(
+                        new ChartStorySection("Demo kapsamı",
+                                "Bu hackathon demosunda gerçek gecikmeli/gün sonu veri ve " +
+                                "grafik hikâyesi yalnızca THYAO için aktiftir. " + symbol +
+                                " kartı eğitim kapsamını göstermek için listelenmiştir."),
+                        new ChartStorySection("Ne yapabilirim?",
+                                "THYAO hissesini açarak gerçek veri üzerinden grafik hikâyesini " +
+                                "deneyimleyebilir, diğer şirketler için Öğrenme Merkezi'ndeki " +
+                                "eğitim içeriklerine göz atabilirsiniz.")
+                ),
+                List.of(AI_DISCLAIMER, "Gerçek dışı/sahte fiyat verisi gösterilmez."),
+                "DEMO_LIMITED",
+                true);
     }
 
     private ChartStoryResponse unavailableResponse(String symbol) {

@@ -1,13 +1,18 @@
 import { useNavigate } from 'react-router-dom'
 import { formatCurrency, formatPercent, changeColorClass } from '../../utils/formatters.js'
+import { HERO_SYMBOL } from '../../services/stockService.js'
 import DataSourceBadge from '../common/DataSourceBadge.jsx'
 
 export default function StockCard({ stock }) {
   const navigate = useNavigate()
+  const isHero = stock.symbol === HERO_SYMBOL
   const hasPrice = stock.currentPrice != null
   const hasChange = stock.dailyChangePercent != null
   const isUp = hasChange ? Number(stock.dailyChangePercent) >= 0 : true
   const priceUnavailable = !hasPrice
+  const badgeSource = isHero
+    ? (priceUnavailable ? 'UNAVAILABLE' : stock.dataSource)
+    : 'DEMO_LIMITED'
 
   return (
     <div
@@ -33,7 +38,7 @@ export default function StockCard({ stock }) {
               <p className="text-xs text-on-surface-variant truncate">{stock.companyName}</p>
             </div>
           </div>
-          <DataSourceBadge source={priceUnavailable ? 'UNAVAILABLE' : stock.dataSource} />
+          <DataSourceBadge source={badgeSource} />
         </div>
 
         {/* Sector */}
@@ -42,9 +47,15 @@ export default function StockCard({ stock }) {
         </span>
 
         {/* Description */}
-        {stock.description && (
-          <p className="text-body-md text-on-surface-variant line-clamp-2 flex-1">
-            {stock.description}
+        {isHero ? (
+          stock.description && (
+            <p className="text-body-md text-on-surface-variant line-clamp-2 flex-1">
+              {stock.description}
+            </p>
+          )
+        ) : (
+          <p className="text-body-md text-amber-800 bg-amber-50 border border-amber-200 rounded-lg p-2.5 leading-snug flex-1">
+            Bu hackathon demosunda gerçek veri ve grafik hikâyesi THYAO üzerinde gösterilmektedir.
           </p>
         )}
 
@@ -52,7 +63,9 @@ export default function StockCard({ stock }) {
         <div className="flex items-end justify-between pt-2 border-t border-surface-container-high">
           <div>
             <p className="text-xs text-outline mb-0.5">Son Fiyat</p>
-            {priceUnavailable ? (
+            {!isHero ? (
+              <p className="text-body-md text-amber-700 font-medium">Demo kapsamı</p>
+            ) : priceUnavailable ? (
               <p className="text-body-md text-orange-700 font-medium">Gerçek veri yok</p>
             ) : (
               <p className="text-headline-md font-bold text-on-surface">
@@ -60,7 +73,7 @@ export default function StockCard({ stock }) {
               </p>
             )}
           </div>
-          {hasChange ? (
+          {isHero && hasChange ? (
             <div className="text-right">
               <div className={`flex items-center gap-1 text-label-md ${changeColorClass(stock.dailyChangePercent)}`}>
                 <span className="material-symbols-outlined text-[14px]">
@@ -80,7 +93,7 @@ export default function StockCard({ stock }) {
           className="w-full mt-1 py-2 rounded-lg border border-primary text-primary text-label-md font-semibold hover:bg-primary hover:text-on-primary transition-colors flex items-center justify-center gap-1"
           onClick={(e) => { e.stopPropagation(); navigate(`/stocks/${stock.symbol}`) }}
         >
-          Hisseyi İncele
+          {isHero ? 'Hisseyi İncele' : 'Demo Kartını Aç'}
           <span className="material-symbols-outlined text-[16px]">arrow_forward</span>
         </button>
       </div>

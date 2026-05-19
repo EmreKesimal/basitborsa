@@ -53,18 +53,57 @@ public class AiContextBuilder {
         Map<String, Object> nearestPoint = findNearestPricePoint(realPrices, target);
         if (nearestPoint != null) priceContext.put("nearestPoint", nearestPoint);
 
-        List<StockNews> companyNews = newsService.getNear(stock.getSymbol(), target, "before",
-                MAX_COMPANY_ARTICLES);
-        List<StockNews> sectorNews = newsService.getSectorBefore(stock.getSector(), target,
+        // Prefer nearest-relevant (same-day → 14d-before → 3d-after). Returns articles of all
+        // feed categories saved under this symbol (company + contextual).
+        List<StockNews> nearby = newsService.findNearestRelevantNews(stock.getSymbol(), target,
+                MAX_COMPANY_ARTICLES * 2);
+        if (nearby.isEmpty()) {
+            nearby = newsService.getNear(stock.getSymbol(), target, "before",
+                    MAX_COMPANY_ARTICLES * 2);
+        }
+        List<StockNews> legacySectorNews = newsService.getSectorBefore(stock.getSector(), target,
                 MAX_SECTOR_ARTICLES);
 
-        List<Map<String, Object>> companyArticles = companyNews.stream()
-                .map(n -> toArticle(n, "COMPANY"))
-                .toList();
-        List<Map<String, Object>> sectorArticles = sectorNews.stream()
-                .filter(n -> companyNews.stream().noneMatch(c -> sameArticle(c, n)))
-                .map(n -> toArticle(n, "SECTOR"))
-                .toList();
+        List<StockNews> companyRows = new ArrayList<>();
+        List<StockNews> sectorRows = new ArrayList<>();
+        List<StockNews> commodityRows = new ArrayList<>();
+        List<StockNews> macroRows = new ArrayList<>();
+        for (StockNews n : nearby) {
+            String fc = n.getFeedCategory();
+            if (fc == null || "COMPANY".equals(fc)) companyRows.add(n);
+            else if ("SECTOR".equals(fc)) sectorRows.add(n);
+            else if ("COMMODITY".equals(fc)) commodityRows.add(n);
+            else if ("MACRO".equals(fc) || "GLOBAL".equals(fc)) macroRows.add(n);
+            else companyRows.add(n);
+        }
+        // Merge legacy sector-keyword rows (matchedSectors) that aren't already covered.
+        for (StockNews n : legacySectorNews) {
+            boolean dup = sectorRows.stream().anyMatch(s -> sameArticle(s, n))
+                    || companyRows.stream().anyMatch(s -> sameArticle(s, n));
+            if (!dup) sectorRows.add(n);
+        }
+
+        List<StockNews> companyTrim = companyRows.stream().limit(MAX_COMPANY_ARTICLES).toList();
+        List<StockNews> sectorTrim = sectorRows.stream().limit(MAX_SECTOR_ARTICLES).toList();
+        List<StockNews> commodityTrim = commodityRows.stream().limit(MAX_SECTOR_ARTICLES).toList();
+        List<StockNews> macroTrim = macroRows.stream().limit(MAX_SECTOR_ARTICLES).toList();
+
+        List<Map<String, Object>> companyArticles = companyTrim.stream()
+                .map(n -> toArticle(n, "COMPANY")).toList();
+        List<Map<String, Object>> sectorArticles = sectorTrim.stream()
+                .filter(n -> companyTrim.stream().noneMatch(c -> sameArticle(c, n)))
+                .map(n -> toArticle(n, "SECTOR")).toList();
+        List<Map<String, Object>> commodityArticles = commodityTrim.stream()
+                .map(n -> toArticle(n, "COMMODITY")).toList();
+        List<Map<String, Object>> globalArticles = macroTrim.stream()
+                .map(n -> toArticle(n, "GLOBAL")).toList();
+
+        // Backwards-compat flat list — keeps existing Python prompt path working.
+        List<Map<String, Object>> relatedAll = new ArrayList<>();
+        relatedAll.addAll(companyArticles);
+        relatedAll.addAll(sectorArticles);
+        relatedAll.addAll(commodityArticles);
+        relatedAll.addAll(globalArticles);
 
         Map<String, Object> ctx = new HashMap<>();
         ctx.put("symbol", stock.getSymbol());
@@ -74,7 +113,13 @@ public class AiContextBuilder {
         ctx.put("clickedDate", target.toString());
         ctx.put("companyArticles", companyArticles);
         ctx.put("sectorArticles", sectorArticles);
-        ctx.put("articlesAvailable", !companyArticles.isEmpty() || !sectorArticles.isEmpty());
+        ctx.put("commodityArticles", commodityArticles);
+        ctx.put("globalArticles", globalArticles);
+        ctx.put("relatedArticles", relatedAll);
+        ctx.put("articlesAvailable", !relatedAll.isEmpty());
+        ctx.put("contextNotice",
+                "Şirket haberleri doğrudan şirketle ilgilidir. Sektör, petrol/yakıt ve "
+                        + "küresel haberler yalnızca bağlamsaldır. Kesin neden-sonuç iddiası kurma.");
         ctx.put("userLevel", "beginner");
         ctx.put("language", "tr");
         return ctx;
@@ -99,6 +144,7 @@ public class AiContextBuilder {
         m.put("publishedAt", n.getPublishedAt() != null ? n.getPublishedAt().toString() : null);
         m.put("dataSource", "KAP".equals(n.getSourceType()) ? "KAP" : "EXTERNAL_NEWS");
         m.put("relation", relation);
+        m.put("category", n.getFeedCategory() != null ? n.getFeedCategory() : relation);
         return m;
     }
 

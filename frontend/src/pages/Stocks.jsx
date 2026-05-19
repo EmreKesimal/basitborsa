@@ -23,6 +23,7 @@ export default function Stocks() {
         <h1 className="text-headline-lg font-bold text-on-surface">Hisseler</h1>
         <p className="text-body-md text-on-surface-variant">
           Seçili BIST hisselerini inceleyin — gecikmeli/gün sonu verileri kullanılmaktadır.
+          Bu hackathon demosunda gerçek veri ve grafik hikâyesi yalnızca THYAO için aktiftir.
         </p>
       </div>
 

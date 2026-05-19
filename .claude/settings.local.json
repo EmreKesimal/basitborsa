@@ -82,7 +82,11 @@
       "Bash(lsof -iTCP:8000 -sTCP:LISTEN)",
       "Bash(lsof -iTCP:5432 -sTCP:LISTEN)",
       "Bash(curl -sf -X POST http://localhost:8080/api/admin/news/sync-selected -o /tmp/news_sync.json -w \"HTTP:%{http_code}\\\\n\")",
-      "Read(//tmp/**)"
+      "Read(//tmp/**)",
+      "Bash(/usr/libexec/java_home -V)",
+      "Bash(ls /Users/emrekesimal/Desktop/basitborsa/basitborsa/ai-service/.venv/bin/python 2>&1; ls /Users/emrekesimal/Desktop/basitborsa/basitborsa/ai-service/ | grep -i venv)",
+      "Bash(/Users/emrekesimal/Desktop/basitborsa/basitborsa/ai-service/.venv/bin/python -c \"import sys; sys.path.insert\\(0,'/Users/emrekesimal/Desktop/basitborsa/basitborsa/ai-service'\\); import app.main; print\\('imports OK'\\)\")",
+      "Bash(mvn -q -DskipTests clean compile)"
     ]
   }
 }

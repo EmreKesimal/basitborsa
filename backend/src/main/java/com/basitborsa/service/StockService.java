@@ -1,5 +1,6 @@
 package com.basitborsa.service;
 
+import com.basitborsa.config.ActiveSymbolsConfig;
 import com.basitborsa.dto.stock.StockDto;
 import com.basitborsa.dto.stock.StockEventDto;
 import com.basitborsa.dto.stock.StockNewsDto;
@@ -35,12 +36,14 @@ public class StockService {
     private static final String DS_EXTERNAL = "EXTERNAL_PROVIDER";
     private static final String DS_CACHED   = "CACHED_EXTERNAL";
     private static final String DS_UNAVAILABLE = "UNAVAILABLE";
+    private static final String DS_DEMO_LIMITED = "DEMO_LIMITED";
 
     private final StockRepository stockRepository;
     private final StockPriceRepository stockPriceRepository;
     private final StockEventRepository stockEventRepository;
     private final StockNewsRepository stockNewsRepository;
     private final StockMapper stockMapper;
+    private final ActiveSymbolsConfig activeSymbols;
     // Lazy to avoid circular dep — sync service depends on repos
     private final ObjectProvider<MarketDataSyncService> syncServiceProvider;
 
@@ -49,12 +52,14 @@ public class StockService {
                         StockEventRepository stockEventRepository,
                         StockNewsRepository stockNewsRepository,
                         StockMapper stockMapper,
+                        ActiveSymbolsConfig activeSymbols,
                         ObjectProvider<MarketDataSyncService> syncServiceProvider) {
         this.stockRepository = stockRepository;
         this.stockPriceRepository = stockPriceRepository;
         this.stockEventRepository = stockEventRepository;
         this.stockNewsRepository = stockNewsRepository;
         this.stockMapper = stockMapper;
+        this.activeSymbols = activeSymbols;
         this.syncServiceProvider = syncServiceProvider;
     }
 
@@ -68,7 +73,7 @@ public class StockService {
                 .map(n -> new StockNewsDto(
                         n.getId(), n.getSymbol(), n.getTitle(), n.getSummary(),
                         n.getSourceName(), n.getSourceUrl(), n.getPublishedAt(),
-                        n.getCategory(), n.getSourceType()))
+                        n.getCategory(), n.getSourceType(), n.getFeedCategory()))
                 .toList();
     }
 
@@ -94,6 +99,11 @@ public class StockService {
         Stock stock = findBySymbol(symbol);
         LocalDate cutoff = LocalDate.now().minusDays(days);
         LocalDateTime updatedAt = stock.getLastPriceUpdatedAt();
+
+        if (!activeSymbols.isMarketActive(stock.getSymbol())) {
+            return new StockPriceHistoryDto(symbol, DS_DEMO_LIMITED, false, updatedAt, List.of(),
+                    ActiveSymbolsConfig.DEMO_LIMITED_DISCLAIMER);
+        }
 
         var externalPrices = stockPriceRepository
                 .findByStockAndPriceDateAfterAndDataSourceInOrderByPriceDateAsc(stock, cutoff, EXTERNAL_SOURCES)
