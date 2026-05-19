@@ -10,32 +10,75 @@ Kurallar:
 - "Olabilir", "katkı sağlamış olabilir", "dikkat çekiyor" gibi ihtiyatlı ifadeler kullan.
 - Cevabı kısa, sade ve eğitim odaklı ver.
 - Yeni başlayan bir kullanıcının anlayacağı dil kullan.
+- Sana verilmemiş haber/olay üretme. Sana verilmediyse "doğrulanmış ilgili haber bulunamadı" de.
 - Cevabın sonunda yatırım tavsiyesi değildir uyarısı olmalı."""
+
+
+def _format_articles(items: List[Dict[str, Any]]) -> str:
+    if not items:
+        return "Yok"
+    out = []
+    for i, a in enumerate(items, 1):
+        title = (a.get("title") or "").strip()
+        snippet = (a.get("snippet") or "").strip()
+        source = (a.get("sourceName") or "Bilinmiyor").strip()
+        published = (a.get("publishedAt") or "").strip()
+        ds = (a.get("dataSource") or "").strip()
+        url = (a.get("url") or "").strip()
+        line = f"  {i}) [{published} | {source} | {ds}] {title}"
+        if snippet:
+            line += f"\n     Özet: {snippet}"
+        if url:
+            line += f"\n     Kaynak: {url}"
+        out.append(line)
+    return "\n".join(out)
 
 
 def build_chart_story_prompt(
     symbol: str,
     company_name: str,
     sector: Optional[str],
-    event_date: Optional[str],
-    event_title: Optional[str],
-    price_change_percent: Optional[float],
-    related_news: List[str],
+    clicked_date: Optional[str],
     price_context: Optional[Dict[str, Any]],
+    company_articles: List[Dict[str, Any]],
+    sector_articles: List[Dict[str, Any]],
+    articles_available: bool,
+    # legacy args kept for backward compat
+    event_date: Optional[str] = None,
+    event_title: Optional[str] = None,
+    price_change_percent: Optional[float] = None,
+    related_news: Optional[List[str]] = None,
 ) -> str:
-    news_text = "; ".join(related_news) if related_news else "Bilgi yok"
-    price_text = ""
-    if price_context:
-        latest = price_context.get("latestClose")
-        change = price_context.get("changePercent")
-        highest = price_context.get("highestPrice")
-        lowest = price_context.get("lowestPrice")
-        if latest:
-            price_text = f"Son kapanış: {latest}"
-        if change is not None:
-            price_text += f", 30 günlük değişim: %{change:.2f}"
-        if highest and lowest:
-            price_text += f", 30 günlük en yüksek: {highest}, en düşük: {lowest}"
+    pc = price_context or {}
+    nearest = pc.get("nearestPoint") or {}
+    price_lines = []
+    if pc.get("latestClose") is not None:
+        price_lines.append(f"Son kapanış: {pc.get('latestClose')}")
+    if pc.get("changePercent") is not None:
+        price_lines.append(f"30 günlük değişim: %{pc.get('changePercent'):.2f}")
+    if pc.get("highestPrice") is not None and pc.get("lowestPrice") is not None:
+        price_lines.append(f"30 gün aralık: {pc.get('lowestPrice')} – {pc.get('highestPrice')}")
+    if pc.get("volumeTrend"):
+        price_lines.append(f"Hacim eğilimi: {pc.get('volumeTrend')}")
+    if pc.get("dataSource"):
+        price_lines.append(f"Veri kaynağı: {pc.get('dataSource')}")
+    if nearest:
+        price_lines.append(
+            f"Tıklanan tarihe en yakın nokta: {nearest.get('date')} kapanış {nearest.get('close')}"
+        )
+    price_text = "\n".join(price_lines) if price_lines else "Mevcut değil"
+
+    company_block = _format_articles(company_articles or [])
+    sector_block = _format_articles(sector_articles or [])
+
+    no_news_directive = ""
+    if not articles_available:
+        no_news_directive = (
+            "\nÖNEMLİ: Bu hisse için doğrulanmış ilgili haber bulunamadı. "
+            "Olası bir haber/olay uydurma. 'Aynı dönemde hangi gelişmeler vardı?' bölümünde "
+            "'Doğrulanmış ilgili haber bulunamadı' yaz ve fiyat hareketini sadece eğitim amaçlı, "
+            "ihtiyatlı ifadelerle yorumla."
+        )
 
     return f"""{SYSTEM_PREAMBLE}
 
@@ -50,12 +93,20 @@ Veriler:
 Hisse: {symbol}
 Şirket: {company_name}
 Sektör: {sector or "Bilinmiyor"}
-Tarih: {event_date or "Bilinmiyor"}
-Fiyat değişimi: {f"%{price_change_percent:.1f}" if price_change_percent is not None else "Bilinmiyor"}
-Olay: {event_title or "Bilinmiyor"}
-İlgili haberler: {news_text}
-Fiyat bağlamı: {price_text or "Mevcut değil"}
+Kullanıcının grafikte tıkladığı tarih: {clicked_date or "belirtilmemiş"}
 
+Fiyat bağlamı:
+{price_text}
+
+Şirket haberleri (gerçek kaynaklardan, tıklanan tarihten önce):
+{company_block}
+
+Sektör haberleri (gerçek kaynaklardan, tıklanan tarihten önce):
+{sector_block}
+{no_news_directive}
+
+Sadece yukarıda verilen haberleri kullan. Verilmeyen olay/haber üretme.
+Bölüm 2'de en fazla 3 haberi adıyla ve tarihiyle özetle.
 Her bölümü net başlıkla yaz. Kısa ve anlaşılır tut."""
 
 

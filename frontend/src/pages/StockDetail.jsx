@@ -1,11 +1,12 @@
 import { useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useAsync } from '../hooks/useAsync.js'
-import { stockService } from '../services/stockService.js'
+import { stockService, HERO_SYMBOL } from '../services/stockService.js'
 import { aiService } from '../services/aiService.js'
 import StockChart from '../components/stock/StockChart.jsx'
 import StoryPanel from '../components/stock/StoryPanel.jsx'
 import MetricCard from '../components/stock/MetricCard.jsx'
+import LatestNewsCard from '../components/stock/LatestNewsCard.jsx'
 import AiTeacherBox from '../components/ai/AiTeacherBox.jsx'
 import LearningNote from '../components/learning/LearningNote.jsx'
 import LoadingState from '../components/common/LoadingState.jsx'
@@ -16,8 +17,10 @@ import { formatCurrency, formatPercent, changeColorClass } from '../utils/format
 export default function StockDetail() {
   const { symbol } = useParams()
   const navigate = useNavigate()
+  const isHero = (symbol || '').toUpperCase() === HERO_SYMBOL
   const [range, setRange] = useState('30d')
   const [selectedEvent, setSelectedEvent] = useState(null)
+  const [clickedDate, setClickedDate] = useState(null)
   const [aiStory, setAiStory] = useState(null)
   const [aiStoryLoading, setAiStoryLoading] = useState(false)
 
@@ -25,12 +28,22 @@ export default function StockDetail() {
     () => stockService.getOne(symbol), [symbol]
   )
   const { data: priceHistory, loading: pricesLoading } = useAsync(
-    () => stockService.getPrices(symbol, range), [symbol, range]
+    () => isHero ? stockService.getPrices(symbol, range) : Promise.resolve(null),
+    [symbol, range, isHero]
   )
-  const { data: events } = useAsync(() => stockService.getEvents(symbol), [symbol])
+  const { data: events } = useAsync(
+    () => isHero ? stockService.getEvents(symbol) : Promise.resolve([]),
+    [symbol, isHero]
+  )
+  const { data: latestNews } = useAsync(
+    () => isHero ? stockService.getNews(symbol, 5).catch(() => []) : Promise.resolve([]),
+    [symbol, isHero]
+  )
+  const [nearestNews, setNearestNews] = useState(null)
 
   async function handleEventClick(event) {
     setSelectedEvent(event)
+    setClickedDate(null)
     setAiStory(null)
     if (!event) return
     setAiStoryLoading(true)
@@ -44,10 +57,37 @@ export default function StockDetail() {
     }
   }
 
+  async function handleChartClick(date) {
+    if (!date) return
+    setClickedDate(date)
+    setSelectedEvent(null)
+    setAiStory(null)
+    setNearestNews(null)
+    setAiStoryLoading(true)
+    try {
+      const [story, near] = await Promise.all([
+        aiService.chartStory(symbol, null, date),
+        stockService.getNearestNews(symbol, date, 5).catch(() => []),
+      ])
+      setAiStory(story)
+      setNearestNews(near)
+    } catch {
+      // story panel shows fallback content
+    } finally {
+      setAiStoryLoading(false)
+    }
+  }
+
   if (stockLoading) return <LoadingState message="Hisse bilgileri yükleniyor..." />
   if (stockError) return <ErrorState message={stockError} onRetry={() => navigate('/stocks')} />
 
-  const isUp = Number(stock?.dailyChangePercent) >= 0
+  const hasPrice = isHero && stock?.currentPrice != null
+  const hasChange = isHero && stock?.dailyChangePercent != null
+  const isUp = hasChange ? Number(stock.dailyChangePercent) >= 0 : true
+  const priceUnavailable = !hasPrice
+  const headerBadge = isHero
+    ? (priceUnavailable ? 'UNAVAILABLE' : stock?.dataSource)
+    : 'DEMO_LIMITED'
 
   return (
     <div className="flex flex-col gap-6">
@@ -74,7 +114,7 @@ export default function StockDetail() {
               <div className="flex flex-wrap items-center gap-2">
                 <h1 className="text-headline-lg font-black text-primary">{stock?.symbol}</h1>
                 <span className="text-xs bg-surface-container text-outline px-2 py-0.5 rounded-full">BIST</span>
-                {stock?.dataSource && <DataSourceBadge source={stock.dataSource} />}
+                <DataSourceBadge source={headerBadge} />
               </div>
               <h2 className="text-body-lg text-on-surface-variant font-medium">{stock?.companyName}</h2>
               <span className="text-xs text-outline bg-surface-container-low px-2.5 py-0.5 rounded-full inline-block mt-1">
@@ -85,16 +125,32 @@ export default function StockDetail() {
 
           {/* Right: price */}
           <div className="text-right">
-            <div className="text-headline-lg font-black text-on-surface">
-              {formatCurrency(stock?.currentPrice)}
-            </div>
-            <div className={`flex items-center justify-end gap-1 text-label-md mt-0.5 ${changeColorClass(stock?.dailyChangePercent)}`}>
-              <span className="material-symbols-outlined text-[14px]">
-                {isUp ? 'trending_up' : 'trending_down'}
-              </span>
-              {formatPercent(stock?.dailyChangePercent)}
-              <span className="text-outline font-normal ml-1">Bugün</span>
-            </div>
+            {!isHero ? (
+              <>
+                <div className="text-body-lg font-bold text-amber-700">Demo kapsamı</div>
+                <p className="text-xs text-outline mt-1">Gerçek veriyle yalnızca THYAO aktif</p>
+              </>
+            ) : priceUnavailable ? (
+              <>
+                <div className="text-body-lg font-bold text-orange-700">Gerçek veri yok</div>
+                <p className="text-xs text-outline mt-1">Sağlayıcıdan veri bekleniyor</p>
+              </>
+            ) : (
+              <>
+                <div className="text-headline-lg font-black text-on-surface">
+                  {formatCurrency(stock?.currentPrice)}
+                </div>
+                {hasChange && (
+                  <div className={`flex items-center justify-end gap-1 text-label-md mt-0.5 ${changeColorClass(stock?.dailyChangePercent)}`}>
+                    <span className="material-symbols-outlined text-[14px]">
+                      {isUp ? 'trending_up' : 'trending_down'}
+                    </span>
+                    {formatPercent(stock?.dailyChangePercent)}
+                    <span className="text-outline font-normal ml-1">Bugün</span>
+                  </div>
+                )}
+              </>
+            )}
           </div>
         </div>
 
@@ -111,18 +167,39 @@ export default function StockDetail() {
         {/* ── LEFT column: chart + company + metrics + AI ── */}
         <div className="flex-1 min-w-0 flex flex-col gap-6">
 
-          {/* Chart HERO */}
-          {pricesLoading ? (
-            <LoadingState message="Fiyat verileri yükleniyor..." />
+          {/* Chart HERO — only for THYAO */}
+          {isHero ? (
+            pricesLoading ? (
+              <LoadingState message="Fiyat verileri yükleniyor..." />
+            ) : (
+              <StockChart
+                priceHistory={priceHistory}
+                events={events}
+                onEventClick={handleEventClick}
+                onChartClick={handleChartClick}
+                selectedRange={range}
+                onRangeChange={setRange}
+                selectedEvent={selectedEvent}
+              />
+            )
           ) : (
-            <StockChart
-              priceHistory={priceHistory}
-              events={events}
-              onEventClick={handleEventClick}
-              selectedRange={range}
-              onRangeChange={setRange}
-              selectedEvent={selectedEvent}
-            />
+            <div className="card p-6 flex flex-col gap-3 border border-amber-200 bg-amber-50/40">
+              <div className="flex items-center gap-2">
+                <span className="material-symbols-outlined text-amber-700 text-[22px]">info</span>
+                <h3 className="text-headline-md font-bold text-on-surface">Demo Kapsamı</h3>
+              </div>
+              <p className="text-body-md text-on-surface-variant leading-relaxed">
+                Bu demo sürümünde gerçek veriyle grafik analizi THYAO için aktiftir.
+                Bu şirket kartı eğitim kapsamını göstermek için listelenmiştir.
+              </p>
+              <button
+                onClick={() => navigate(`/stocks/${HERO_SYMBOL}`)}
+                className="self-start mt-2 px-4 py-2 rounded-lg bg-primary text-on-primary text-label-md font-semibold hover:opacity-90 transition flex items-center gap-1"
+              >
+                THYAO Gerçek Veri Demosuna Git
+                <span className="material-symbols-outlined text-[16px]">arrow_forward</span>
+              </button>
+            </div>
           )}
 
           {/* Learning note */}
@@ -130,6 +207,26 @@ export default function StockDetail() {
             Bir şirketi anlamak, grafiğini okuyabilmekten önce gelir. Fiyat geçmişini ve
             olayları incelerken ne olmuş olabileceğini AI destekli analizlerle öğren.
           </LearningNote>
+
+          {/* Latest related news — only for THYAO */}
+          {isHero ? (
+            <LatestNewsCard
+              items={clickedDate ? nearestNews : latestNews}
+              title={clickedDate ? 'Seçilen Tarihe En Yakın Haberler' : 'Son İlgili Haberler'}
+              emptyHint={
+                clickedDate
+                  ? 'Seçilen tarihe yakın eşleşen haber bulunamadı.'
+                  : 'Bu hisse için eşleşen güncel haber bulunamadı.'
+              }
+            />
+          ) : (
+            <div className="card p-5 flex flex-col gap-2">
+              <h3 className="text-headline-md font-bold text-on-surface">Haberler</h3>
+              <p className="text-body-md text-on-surface-variant">
+                Bu hackathon demosunda gerçek haber akışı yalnızca THYAO için aktiftir.
+              </p>
+            </div>
+          )}
 
           {/* Company info */}
           {stock?.description && (
@@ -144,19 +241,21 @@ export default function StockDetail() {
             </div>
           )}
 
-          {/* Metrics */}
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-            <MetricCard label="F/K Oranı" value={stock?.peRatio} hint="Fiyat / Kazanç" />
-            <MetricCard label="PD/DD" value={stock?.pbRatio} hint="Piyasa / Defter" />
-            <MetricCard
-              label="Temettü Verimi"
-              value={stock?.dividendYield != null ? `%${Number(stock.dividendYield).toFixed(2)}` : null}
-            />
-            <MetricCard
-              label="Piyasa Değeri"
-              value={stock?.marketCapBillions != null ? `${Number(stock.marketCapBillions).toFixed(0)} Mlyr ₺` : null}
-            />
-          </div>
+          {/* Metrics — only for THYAO (real data) */}
+          {isHero && (
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+              <MetricCard label="F/K Oranı" value={stock?.peRatio} hint="Fiyat / Kazanç" />
+              <MetricCard label="PD/DD" value={stock?.pbRatio} hint="Piyasa / Defter" />
+              <MetricCard
+                label="Temettü Verimi"
+                value={stock?.dividendYield != null ? `%${Number(stock.dividendYield).toFixed(2)}` : null}
+              />
+              <MetricCard
+                label="Piyasa Değeri"
+                value={stock?.marketCapBillions != null ? `${Number(stock.marketCapBillions).toFixed(0)} Mlyr ₺` : null}
+              />
+            </div>
+          )}
 
           {/* AI Teacher */}
           {stock && <AiTeacherBox stock={stock} />}
@@ -165,15 +264,18 @@ export default function StockDetail() {
         {/* ── RIGHT sidebar: story + events + checklist ─── */}
         <aside className="w-full xl:w-[380px] flex-shrink-0 flex flex-col gap-6">
 
-          {/* HERO: Grafiğin Hikâyesi */}
-          <StoryPanel
-            event={selectedEvent}
-            aiStory={aiStory}
-            aiStoryLoading={aiStoryLoading}
-          />
+          {/* HERO: Grafiğin Hikâyesi — only for THYAO */}
+          {isHero && (
+            <StoryPanel
+              event={selectedEvent}
+              clickedDate={clickedDate}
+              aiStory={aiStory}
+              aiStoryLoading={aiStoryLoading}
+            />
+          )}
 
           {/* Events list */}
-          {events?.length > 0 && (
+          {isHero && events?.length > 0 && (
             <div className="card p-5 flex flex-col gap-4">
               <h3 className="text-headline-md font-bold text-on-surface">Önemli Olaylar</h3>
               <div className="flex flex-col gap-1.5">

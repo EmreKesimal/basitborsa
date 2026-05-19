@@ -7,12 +7,22 @@ class ChartStorySection(BaseModel):
     content: str
 
 
+class RelevantNewsRef(BaseModel):
+    title: str
+    sourceName: Optional[str] = None
+    url: Optional[str] = None
+    publishedAt: Optional[str] = None
+    dataSource: Optional[str] = None
+
+
 class ChartStoryResponse(BaseModel):
     summary: str
     sections: List[ChartStorySection]
     warnings: List[str]
     sourceType: str
     safetyPassed: bool
+    relevantNews: List[RelevantNewsRef] = []
+    sourcesUsed: List[str] = []
 
 
 class TermExplanationResponse(BaseModel):

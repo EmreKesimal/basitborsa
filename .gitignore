@@ -31,6 +31,18 @@ dist/
 *.swo
 .DS_Store
 
+# Claude Code / agent tooling (not part of app runtime)
+.claude/
+.claude-flow/
+.mcp.json
+**/.claude-flow/
+
+# macOS Finder duplicates
+* 2.*
+*\ 2.md
+*\ 2.json
+*\ 2.yaml
+
 # Logs
 *.log
 logs/

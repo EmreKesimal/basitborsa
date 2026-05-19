@@ -1,5 +1,6 @@
 package com.basitborsa.provider;
 
+import com.basitborsa.config.ActiveSymbolsConfig;
 import com.basitborsa.dto.stock.StockPriceDto;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -7,12 +8,15 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
 import org.springframework.web.reactive.function.client.WebClient;
+import org.springframework.web.reactive.function.client.WebClientResponseException;
 
 import java.math.BigDecimal;
 import java.time.Duration;
 import java.time.LocalDate;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Locale;
+import java.util.Map;
 import java.util.Objects;
 
 @Component
@@ -24,9 +28,23 @@ public class ExternalMarketDataProvider implements MarketDataProvider {
     private static final List<String> SUPPORTED_SYMBOLS =
         List.of("THYAO", "ASELS", "BIMAS", "SISE", "TUPRS", "KCHOL", "GARAN", "FROTO");
 
-    private static final Duration TIMEOUT = Duration.ofSeconds(10);
+    // Twelve Data accepts plain BIST tickers with exchange=BIST. Keep mapping
+    // explicit so we can override per-symbol if their listing diverges.
+    private static final Map<String, String> PROVIDER_SYMBOL_MAP = Map.ofEntries(
+        Map.entry("THYAO", "THYAO"),
+        Map.entry("ASELS", "ASELS"),
+        Map.entry("BIMAS", "BIMAS"),
+        Map.entry("SISE",  "SISE"),
+        Map.entry("TUPRS", "TUPRS"),
+        Map.entry("KCHOL", "KCHOL"),
+        Map.entry("GARAN", "GARAN"),
+        Map.entry("FROTO", "FROTO")
+    );
+
+    private static final Duration TIMEOUT = Duration.ofSeconds(15);
 
     private final WebClient webClient;
+    private final ActiveSymbolsConfig activeSymbols;
 
     @Value("${market.data.api.key:}")
     private String apiKey;
@@ -39,8 +57,10 @@ public class ExternalMarketDataProvider implements MarketDataProvider {
 
     public ExternalMarketDataProvider(
             @Value("${market.data.base-url:https://api.twelvedata.com}") String baseUrl,
-            WebClient.Builder webClientBuilder) {
+            WebClient.Builder webClientBuilder,
+            ActiveSymbolsConfig activeSymbols) {
         this.webClient = webClientBuilder.baseUrl(baseUrl).build();
+        this.activeSymbols = activeSymbols;
     }
 
     @Override
@@ -60,30 +80,47 @@ public class ExternalMarketDataProvider implements MarketDataProvider {
     }
 
     @Override
+    public String mapToProviderSymbol(String symbol) {
+        return PROVIDER_SYMBOL_MAP.getOrDefault(symbol, symbol);
+    }
+
+    @Override
     public StockPriceDto getLatestPrice(String symbol) {
-        List<StockPriceDto> prices = fetchTimeSeries(symbol, 1);
+        ProviderFetchResult res = getHistoricalPricesDetailed(symbol, 1);
+        List<StockPriceDto> prices = res.prices();
         return prices.isEmpty() ? null : prices.get(prices.size() - 1);
     }
 
     @Override
     public List<StockPriceDto> getHistoricalPrices(String symbol, int days) {
-        return fetchTimeSeries(symbol, days);
+        return getHistoricalPricesDetailed(symbol, days).prices();
     }
 
-    private List<StockPriceDto> fetchTimeSeries(String symbol, int outputSize) {
+    @Override
+    public ProviderFetchResult getHistoricalPricesDetailed(String symbol, int outputSize) {
+        String providerSymbol = mapToProviderSymbol(symbol);
+
+        if (!activeSymbols.isMarketActive(symbol)) {
+            log.debug("Symbol {} not in active MVP scope; skipping provider call.", symbol);
+            return ProviderFetchResult.unsupported(providerSymbol,
+                    "symbol disabled for MVP demo scope");
+        }
         if (!SUPPORTED_SYMBOLS.contains(symbol)) {
             log.warn("Symbol {} not supported by ExternalMarketDataProvider", symbol);
-            return List.of();
+            return ProviderFetchResult.unsupported(providerSymbol, "symbol not supported by provider");
         }
 
-        log.info("Fetching Twelve Data: provider=EXTERNAL_PROVIDER exchange={} symbol={} outputSize={}",
-                exchange, symbol, outputSize);
+        String safeUrl = String.format(
+            "/time_series?symbol=%s&exchange=%s&interval=1day&outputsize=%d&apikey=***",
+            providerSymbol, exchange, outputSize);
+        log.info("Twelve Data request: symbol={} providerSymbol={} exchange={} url={}",
+                symbol, providerSymbol, exchange, safeUrl);
 
         try {
             final String exchangeParam = this.exchange;
             TwelveDataResponse response = webClient.get()
                 .uri(u -> u.path("/time_series")
-                    .queryParam("symbol", symbol)
+                    .queryParam("symbol", providerSymbol)
                     .queryParam("exchange", exchangeParam)
                     .queryParam("interval", "1day")
                     .queryParam("outputsize", outputSize)
@@ -95,17 +132,26 @@ public class ExternalMarketDataProvider implements MarketDataProvider {
                 .block();
 
             if (response == null) {
-                log.warn("Twelve Data null response: symbol={} exchange={}", symbol, exchange);
-                return List.of();
+                log.warn("Twelve Data null response: symbol={} providerSymbol={}", symbol, providerSymbol);
+                return ProviderFetchResult.error(providerSymbol, 200, "null provider response");
             }
-            if (!"ok".equalsIgnoreCase(response.status())) {
-                log.warn("Twelve Data error: symbol={} exchange={} status={} message={}",
-                        symbol, exchange, response.status(), response.message());
-                return List.of();
+
+            String status = response.status() == null ? "" : response.status().toLowerCase(Locale.ROOT);
+            if (!"ok".equals(status)) {
+                int code = response.code() != null ? response.code() : 0;
+                String msg = response.message() != null ? response.message() : "provider error";
+                log.warn("Twelve Data non-ok status: symbol={} providerSymbol={} code={} status={} message={}",
+                        symbol, providerSymbol, code, response.status(), msg);
+                if (isRateLimitMessage(code, msg)) {
+                    return ProviderFetchResult.rateLimit(providerSymbol, code == 0 ? 429 : code, msg);
+                }
+                return ProviderFetchResult.error(providerSymbol, code == 0 ? 400 : code, msg);
             }
+
             if (response.values() == null || response.values().isEmpty()) {
-                log.warn("Twelve Data empty values: symbol={} exchange={}", symbol, exchange);
-                return List.of();
+                log.warn("Twelve Data empty values: symbol={} providerSymbol={} exchange={}",
+                        symbol, providerSymbol, exchange);
+                return ProviderFetchResult.empty(providerSymbol, "empty provider response");
             }
 
             List<StockPriceDto> result = response.values().stream()
@@ -114,13 +160,36 @@ public class ExternalMarketDataProvider implements MarketDataProvider {
                 .sorted(Comparator.comparing(StockPriceDto::date))
                 .toList();
 
-            log.info("Twelve Data fetched: symbol={} exchange={} records={}", symbol, exchange, result.size());
-            return result;
+            log.info("Twelve Data parsed: symbol={} providerSymbol={} parsedRecords={}",
+                    symbol, providerSymbol, result.size());
 
+            if (result.isEmpty()) {
+                return ProviderFetchResult.empty(providerSymbol, "parsed 0 valid rows");
+            }
+            return ProviderFetchResult.ok(providerSymbol, result);
+
+        } catch (WebClientResponseException wcre) {
+            int code = wcre.getStatusCode().value();
+            String body = wcre.getResponseBodyAsString();
+            log.warn("Twelve Data HTTP error: symbol={} providerSymbol={} httpStatus={} body={}",
+                    symbol, providerSymbol, code, body);
+            if (code == 429 || isRateLimitMessage(code, body)) {
+                return ProviderFetchResult.rateLimit(providerSymbol, code, "rate limit / quota exceeded");
+            }
+            return ProviderFetchResult.error(providerSymbol, code, body);
         } catch (Exception e) {
-            log.error("Twelve Data fetch failed: symbol={} exchange={} error={}", symbol, exchange, e.getMessage());
-            return List.of();
+            log.error("Twelve Data fetch failed: symbol={} providerSymbol={} error={}",
+                    symbol, providerSymbol, e.getMessage());
+            return ProviderFetchResult.error(providerSymbol, 0, e.getMessage());
         }
+    }
+
+    private boolean isRateLimitMessage(int code, String msg) {
+        if (code == 429) return true;
+        if (msg == null) return false;
+        String m = msg.toLowerCase(Locale.ROOT);
+        return m.contains("limit") || m.contains("quota") || m.contains("credit")
+            || m.contains("too many") || m.contains("upgrade your plan");
     }
 
     private StockPriceDto mapToDto(String symbol, TwelveDataValue v) {
@@ -150,8 +219,7 @@ public class ExternalMarketDataProvider implements MarketDataProvider {
         }
     }
 
-    // Twelve Data /time_series response shape
-    record TwelveDataResponse(String status, String message, List<TwelveDataValue> values) {}
+    record TwelveDataResponse(String status, String message, Integer code, List<TwelveDataValue> values) {}
 
     record TwelveDataValue(
         String datetime,

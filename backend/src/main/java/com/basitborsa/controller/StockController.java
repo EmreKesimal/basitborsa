@@ -2,11 +2,16 @@ package com.basitborsa.controller;
 
 import com.basitborsa.dto.stock.StockDto;
 import com.basitborsa.dto.stock.StockEventDto;
+import com.basitborsa.dto.stock.StockNewsDto;
 import com.basitborsa.dto.stock.StockPriceHistoryDto;
+import com.basitborsa.entity.StockNews;
+import com.basitborsa.service.NewsService;
 import com.basitborsa.service.StockService;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.LocalDate;
 import java.util.List;
 
 import static com.basitborsa.util.AppConstants.DEFAULT_PRICE_HISTORY_DAYS;
@@ -16,9 +21,11 @@ import static com.basitborsa.util.AppConstants.DEFAULT_PRICE_HISTORY_DAYS;
 public class StockController {
 
     private final StockService stockService;
+    private final NewsService newsService;
 
-    public StockController(StockService stockService) {
+    public StockController(StockService stockService, NewsService newsService) {
         this.stockService = stockService;
+        this.newsService = newsService;
     }
 
     @GetMapping
@@ -42,6 +49,48 @@ public class StockController {
             @RequestParam(defaultValue = "30d") String range) {
         int days = parseRange(range);
         return ResponseEntity.ok(stockService.getPriceHistory(symbol, days));
+    }
+
+    @GetMapping("/{symbol}/news")
+    public ResponseEntity<List<StockNewsDto>> getNews(
+            @PathVariable String symbol,
+            @RequestParam(defaultValue = "10") int limit) {
+        List<StockNewsDto> rows = newsService.getRecent(symbol, limit).stream()
+                .map(StockController::toDto)
+                .toList();
+        return ResponseEntity.ok(rows);
+    }
+
+    @GetMapping("/{symbol}/news/near")
+    public ResponseEntity<List<StockNewsDto>> getNewsNear(
+            @PathVariable String symbol,
+            @RequestParam(name = "date", required = false)
+                @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date,
+            @RequestParam(defaultValue = "before") String direction,
+            @RequestParam(defaultValue = "5") int limit) {
+        List<StockNewsDto> rows = newsService.getNear(symbol, date, direction, limit).stream()
+                .map(StockController::toDto)
+                .toList();
+        return ResponseEntity.ok(rows);
+    }
+
+    @GetMapping("/{symbol}/news/nearest")
+    public ResponseEntity<List<StockNewsDto>> getNewsNearest(
+            @PathVariable String symbol,
+            @RequestParam(name = "date", required = false)
+                @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date,
+            @RequestParam(defaultValue = "5") int limit) {
+        List<StockNewsDto> rows = newsService.findNearestRelevantNews(symbol, date, limit).stream()
+                .map(StockController::toDto)
+                .toList();
+        return ResponseEntity.ok(rows);
+    }
+
+    private static StockNewsDto toDto(StockNews n) {
+        return new StockNewsDto(
+                n.getId(), n.getSymbol(), n.getTitle(), n.getSummary(),
+                n.getSourceName(), n.getSourceUrl(), n.getPublishedAt(),
+                n.getCategory(), n.getSourceType(), n.getFeedCategory());
     }
 
     private int parseRange(String range) {
