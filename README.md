@@ -1,4 +1,4 @@
-# BasitBorsa
+# BasitBorsa  Deploy Link: https://basitborsa-frontend.onrender.com 
 
 > **Borsayı anlamanın en basit yolu**
 
