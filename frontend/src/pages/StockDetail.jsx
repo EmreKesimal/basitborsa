@@ -275,7 +275,7 @@ export default function StockDetail() {
           )}
 
           {/* Events list */}
-          {isHero && events?.length > 0 && (
+          {isHero && Array.isArray(events) && events.length > 0 && (
             <div className="card p-5 flex flex-col gap-4">
               <h3 className="text-headline-md font-bold text-on-surface">Önemli Olaylar</h3>
               <div className="flex flex-col gap-1.5">

@@ -35,6 +35,7 @@ function CategoryBadge({ feedCategory }) {
 }
 
 export default function LatestNewsCard({ items, title = 'Son İlgili Haberler', emptyHint }) {
+  const safeItems = Array.isArray(items) ? items : []
   return (
     <div className="card p-5 flex flex-col gap-3">
       <div className="flex items-center gap-2">
@@ -47,13 +48,13 @@ export default function LatestNewsCard({ items, title = 'Son İlgili Haberler', 
         <h3 className="text-headline-md font-bold text-on-surface">{title}</h3>
       </div>
 
-      {(!items || items.length === 0) ? (
+      {safeItems.length === 0 ? (
         <p className="text-body-md text-on-surface-variant">
           {emptyHint || 'Bu hisse için eşleşen güncel haber bulunamadı.'}
         </p>
       ) : (
         <ul className="flex flex-col gap-2">
-          {items.map((n) => (
+          {safeItems.map((n) => (
             <li
               key={n.id || (n.sourceUrl || n.title) + n.publishedAt}
               className="bg-surface-container-low rounded-lg p-3 flex flex-col gap-1"

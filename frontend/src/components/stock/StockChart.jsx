@@ -27,9 +27,10 @@ function CustomTooltip({ active, payload, label }) {
 export default function StockChart({
   priceHistory, events, onEventClick, onChartClick, selectedRange, onRangeChange, selectedEvent,
 }) {
-  const prices = priceHistory?.prices || []
+  const prices = Array.isArray(priceHistory?.prices) ? priceHistory.prices : []
+  const safeEvents = Array.isArray(events) ? events : []
   const dataSource = priceHistory?.dataSource
-  const eventDates = new Set(events?.map((e) => e.eventDate) || [])
+  const eventDates = new Set(safeEvents.map((e) => e.eventDate))
 
   const data = prices.map((p) => ({
     date: p.date,
@@ -37,7 +38,7 @@ export default function StockChart({
     hasEvent: eventDates.has(p.date),
   }))
 
-  const eventPoints = (events || [])
+  const eventPoints = safeEvents
     .map((e) => ({ ...e, price: data.find((d) => d.date === e.eventDate)?.price }))
     .filter((e) => e.price != null)
 

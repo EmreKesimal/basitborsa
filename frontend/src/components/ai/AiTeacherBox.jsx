@@ -130,7 +130,7 @@ export default function AiTeacherBox({ stock }) {
           {response.summary && (
             <p className="text-body-md text-on-surface leading-relaxed">{response.summary}</p>
           )}
-          {response.possibleFactors?.length > 0 && (
+          {Array.isArray(response.possibleFactors) && response.possibleFactors.length > 0 && (
             <ul className="flex flex-col gap-2">
               {response.possibleFactors.map((f, i) => (
                 <li key={i} className="flex items-start gap-2 text-body-md text-on-surface-variant">

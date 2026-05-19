@@ -18,12 +18,13 @@ function SectionBlock({ title, content }) {
 }
 
 function RelevantNewsList({ items }) {
-  if (!items?.length) return null
+  const safeItems = Array.isArray(items) ? items : []
+  if (safeItems.length === 0) return null
   return (
     <div className="flex flex-col gap-2">
       <h5 className="text-label-md text-primary font-semibold">Kullanılan Gerçek Haberler</h5>
       <ul className="flex flex-col gap-2">
-        {items.map((n, i) => (
+        {safeItems.map((n, i) => (
           <li key={(n.url || n.title) + i} className="bg-surface-container-low rounded-lg p-3 flex flex-col gap-1">
             <div className="flex items-start justify-between gap-2">
               <span className="text-body-md text-on-surface font-medium leading-tight">{n.title}</span>
@@ -137,7 +138,7 @@ export default function StoryPanel({ event, clickedDate, aiStory, aiStoryLoading
                   {badge.label}
                 </span>
               )}
-              {aiStory.sourcesUsed?.map((s) => (
+              {Array.isArray(aiStory.sourcesUsed) && aiStory.sourcesUsed.map((s) => (
                 <DataSourceBadge key={s} source={s} />
               ))}
             </div>
@@ -154,7 +155,7 @@ export default function StoryPanel({ event, clickedDate, aiStory, aiStoryLoading
               </p>
             )}
 
-            {aiStory.sections?.map((s, i) => (
+            {Array.isArray(aiStory.sections) && aiStory.sections.map((s, i) => (
               <SectionBlock key={i} title={s.title} content={s.content} />
             ))}
 
