@@ -21,7 +21,7 @@ const STEPS = [
     num: '03',
     icon: 'school',
     title: 'Kavramları öğren',
-    desc: 'F/K, PD/DD, temettü gibi terimleri AI Öğretmen\'den öğren. Borsayı anla, önce anla.',
+    desc: 'F/K, PD/DD, temettü gibi terimleri AI Öğretmen\'den öğren.',
     color: 'bg-secondary-container text-on-secondary-container',
   },
 ]
@@ -52,16 +52,17 @@ export default function Home() {
 
           <div>
             <h1 className="text-display-lg font-bold text-on-background leading-tight">
-              Hisseyi alma,
+              Borsayı anlamanın
             </h1>
             <h1 className="text-display-lg font-bold text-primary leading-tight">
-              önce anla.
+              en basit yolu
             </h1>
           </div>
 
           <p className="text-body-lg text-on-surface-variant max-w-lg">
-            Yapay zekâ destekli borsa öğrenme platformu. Gerçek para riski olmadan,
-            hisse grafiklerinin arkasındaki hikâyeleri keşfet.
+            Yeni başlayanlar için yapay zekâ destekli, eğitim odaklı borsa öğrenme platformu.
+            Hisse grafiklerinin arkasındaki hikâyeleri sade dille keşfet. Burası bir alım-satım
+            uygulaması değildir, yatırım tavsiyesi vermez.
           </p>
 
           <div className="flex flex-col sm:flex-row gap-3">

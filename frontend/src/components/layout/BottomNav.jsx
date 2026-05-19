@@ -4,7 +4,6 @@ const navItems = [
   { to: '/', label: 'Ana Sayfa', icon: 'home', end: true },
   { to: '/stocks', label: 'Hisseler', icon: 'show_chart' },
   { to: '/learn', label: 'Öğren', icon: 'school' },
-  { to: '/portfolio', label: 'Portföyüm', icon: 'account_balance_wallet' },
 ]
 
 export default function BottomNav() {

@@ -22,4 +22,3 @@ Do not use:
 - If fallback, debug Spring -> Python payload/config.
 - Polish cautious AI wording.
 - Update README and .env.example.
-- Keep ruflo files untouched.

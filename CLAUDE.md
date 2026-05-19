@@ -9,7 +9,7 @@ No buy/sell recommendations.
 No virtual portfolio in MVP.
 
 Core slogan:
-Hisseyi alma, önce anla.
+Borsayı anlamanın en basit yolu
 
 ## Stack
 - Frontend: React + Vite + Tailwind
@@ -40,20 +40,6 @@ POST /api/ai/chart-story
 POST /api/ai/explain-event
 POST /api/ai/explain-term
 POST /api/ai/explain-stock
-
-## Protected Files
-Never delete, rename, move, overwrite, or refactor files/folders containing:
-
-- ruflo
-- Ruflo
-- RUFLO
-- ruFLO
-
-Before big changes run:
-
-find . -iname "*ruflo*" -print
-
-Final diff must not include ruflo files.
 
 ## Current AI Service Status
 Python AI service runs on:
