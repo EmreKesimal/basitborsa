@@ -25,7 +25,7 @@ function CustomTooltip({ active, payload, label }) {
 }
 
 export default function StockChart({
-  priceHistory, events, onEventClick, selectedRange, onRangeChange, selectedEvent,
+  priceHistory, events, onEventClick, onChartClick, selectedRange, onRangeChange, selectedEvent,
 }) {
   const prices = priceHistory?.prices || []
   const dataSource = priceHistory?.dataSource
@@ -71,18 +71,35 @@ export default function StockChart({
       {eventPoints.length > 0 && (
         <p className="text-xs text-on-surface-variant bg-surface-container-low rounded-lg px-3 py-2">
           <span className="material-symbols-outlined text-[13px] align-middle mr-1">touch_app</span>
-          Grafikteki renkli noktalara tıklayarak olayların hikâyesini öğrenebilirsin.
+          Renkli olay noktalarına ya da herhangi bir tarihe tıklayarak fiyatın hikâyesini öğrenebilirsin.
         </p>
       )}
 
       {/* Chart */}
       {data.length === 0 ? (
-        <div className="h-64 flex items-center justify-center text-on-surface-variant text-body-md">
-          Fiyat verisi bulunamadı.
+        <div className="h-64 flex flex-col items-center justify-center gap-2 text-on-surface-variant text-body-md">
+          {dataSource === 'UNAVAILABLE' ? (
+            <>
+              <span className="material-symbols-outlined text-orange-500 text-[28px]">cloud_off</span>
+              <p className="text-on-surface font-medium">Gerçek piyasa verisi şu an mevcut değil.</p>
+              <p className="text-xs text-outline">Sağlayıcı senkronizasyonu deneniyor. Birkaç saniye sonra sayfayı yenileyin.</p>
+            </>
+          ) : (
+            <p>Fiyat verisi bulunamadı.</p>
+          )}
         </div>
       ) : (
         <ResponsiveContainer width="100%" height={300}>
-          <LineChart data={data} margin={{ top: 8, right: 12, left: 0, bottom: 0 }}>
+          <LineChart
+            data={data}
+            margin={{ top: 8, right: 12, left: 0, bottom: 0 }}
+            onClick={(state) => {
+              if (!onChartClick) return
+              const payload = state?.activePayload?.[0]?.payload
+              if (payload?.date && !payload.hasEvent) onChartClick(payload.date)
+            }}
+            style={{ cursor: onChartClick ? 'pointer' : 'default' }}
+          >
             <CartesianGrid strokeDasharray="3 3" stroke="#dde9ff" vertical={false} />
             <XAxis
               dataKey="date"

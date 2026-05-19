@@ -18,6 +18,7 @@ export default function StockDetail() {
   const navigate = useNavigate()
   const [range, setRange] = useState('30d')
   const [selectedEvent, setSelectedEvent] = useState(null)
+  const [clickedDate, setClickedDate] = useState(null)
   const [aiStory, setAiStory] = useState(null)
   const [aiStoryLoading, setAiStoryLoading] = useState(false)
 
@@ -31,6 +32,7 @@ export default function StockDetail() {
 
   async function handleEventClick(event) {
     setSelectedEvent(event)
+    setClickedDate(null)
     setAiStory(null)
     if (!event) return
     setAiStoryLoading(true)
@@ -44,10 +46,29 @@ export default function StockDetail() {
     }
   }
 
+  async function handleChartClick(date) {
+    if (!date) return
+    setClickedDate(date)
+    setSelectedEvent(null)
+    setAiStory(null)
+    setAiStoryLoading(true)
+    try {
+      const story = await aiService.chartStory(symbol, null, date)
+      setAiStory(story)
+    } catch {
+      // story panel shows fallback content
+    } finally {
+      setAiStoryLoading(false)
+    }
+  }
+
   if (stockLoading) return <LoadingState message="Hisse bilgileri yükleniyor..." />
   if (stockError) return <ErrorState message={stockError} onRetry={() => navigate('/stocks')} />
 
-  const isUp = Number(stock?.dailyChangePercent) >= 0
+  const hasPrice = stock?.currentPrice != null
+  const hasChange = stock?.dailyChangePercent != null
+  const isUp = hasChange ? Number(stock.dailyChangePercent) >= 0 : true
+  const priceUnavailable = !hasPrice
 
   return (
     <div className="flex flex-col gap-6">
@@ -74,7 +95,7 @@ export default function StockDetail() {
               <div className="flex flex-wrap items-center gap-2">
                 <h1 className="text-headline-lg font-black text-primary">{stock?.symbol}</h1>
                 <span className="text-xs bg-surface-container text-outline px-2 py-0.5 rounded-full">BIST</span>
-                {stock?.dataSource && <DataSourceBadge source={stock.dataSource} />}
+                <DataSourceBadge source={priceUnavailable ? 'UNAVAILABLE' : stock?.dataSource} />
               </div>
               <h2 className="text-body-lg text-on-surface-variant font-medium">{stock?.companyName}</h2>
               <span className="text-xs text-outline bg-surface-container-low px-2.5 py-0.5 rounded-full inline-block mt-1">
@@ -85,16 +106,27 @@ export default function StockDetail() {
 
           {/* Right: price */}
           <div className="text-right">
-            <div className="text-headline-lg font-black text-on-surface">
-              {formatCurrency(stock?.currentPrice)}
-            </div>
-            <div className={`flex items-center justify-end gap-1 text-label-md mt-0.5 ${changeColorClass(stock?.dailyChangePercent)}`}>
-              <span className="material-symbols-outlined text-[14px]">
-                {isUp ? 'trending_up' : 'trending_down'}
-              </span>
-              {formatPercent(stock?.dailyChangePercent)}
-              <span className="text-outline font-normal ml-1">Bugün</span>
-            </div>
+            {priceUnavailable ? (
+              <>
+                <div className="text-body-lg font-bold text-orange-700">Gerçek veri yok</div>
+                <p className="text-xs text-outline mt-1">Sağlayıcıdan veri bekleniyor</p>
+              </>
+            ) : (
+              <>
+                <div className="text-headline-lg font-black text-on-surface">
+                  {formatCurrency(stock?.currentPrice)}
+                </div>
+                {hasChange && (
+                  <div className={`flex items-center justify-end gap-1 text-label-md mt-0.5 ${changeColorClass(stock?.dailyChangePercent)}`}>
+                    <span className="material-symbols-outlined text-[14px]">
+                      {isUp ? 'trending_up' : 'trending_down'}
+                    </span>
+                    {formatPercent(stock?.dailyChangePercent)}
+                    <span className="text-outline font-normal ml-1">Bugün</span>
+                  </div>
+                )}
+              </>
+            )}
           </div>
         </div>
 
@@ -119,6 +151,7 @@ export default function StockDetail() {
               priceHistory={priceHistory}
               events={events}
               onEventClick={handleEventClick}
+              onChartClick={handleChartClick}
               selectedRange={range}
               onRangeChange={setRange}
               selectedEvent={selectedEvent}
@@ -168,6 +201,7 @@ export default function StockDetail() {
           {/* HERO: Grafiğin Hikâyesi */}
           <StoryPanel
             event={selectedEvent}
+            clickedDate={clickedDate}
             aiStory={aiStory}
             aiStoryLoading={aiStoryLoading}
           />

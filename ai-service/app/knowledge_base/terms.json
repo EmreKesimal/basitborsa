@@ -1,14 +1,22 @@
 {
   "fk": {
-    "aliases": ["F/K", "FK", "P/E", "price earnings ratio", "fiyat kazanç"],
+    "aliases": ["F/K", "FK", "P/E", "price earnings ratio", "fiyat kazanç", "fiyat/kazanç"],
     "title": "F/K Oranı",
     "simpleExplanation": "F/K oranı, bir şirketin fiyatının kârına göre nasıl değerlendiğini anlamaya yardımcı olan bir göstergedir.",
     "whyItMatters": "Yeni başlayanlar için şirketin kârına göre piyasa tarafından nasıl fiyatlandığını anlamaya yardımcı olabilir.",
     "example": "İki benzer şirketten birinin F/K oranı daha yüksekse, piyasa o şirketten daha fazla büyüme bekliyor olabilir.",
     "warning": "F/K oranı tek başına yatırım kararı vermek için yeterli değildir."
   },
+  "pddd": {
+    "aliases": ["PD/DD", "PDDD", "P/B", "price to book", "piyasa değeri defter değeri", "piyasa/defter"],
+    "title": "PD/DD Oranı",
+    "simpleExplanation": "PD/DD oranı, şirketin piyasa değerinin defter değerine bölünmesiyle bulunur. Şirketin piyasada kayıtlı varlığına göre ne kadar değerlendiğini gösterir.",
+    "whyItMatters": "Yeni başlayanlar için şirketin defter değerine göre ucuz mu pahalı mı işlem gördüğüne dair bir fikir verebilir.",
+    "example": "PD/DD oranı 1'in altında olan bir şirket, defter değerinin altında işlem görüyor olabilir.",
+    "warning": "PD/DD oranı sektöre göre çok değişebilir; tek başına karar göstergesi değildir."
+  },
   "temettu": {
-    "aliases": ["temettü", "temettu", "dividend", "kar payı"],
+    "aliases": ["temettü", "temettu", "dividend", "kar payı", "kâr payı"],
     "title": "Temettü",
     "simpleExplanation": "Temettü, bir şirketin elde ettiği kârın bir kısmını ortaklarıyla paylaşmasıdır.",
     "whyItMatters": "Yeni başlayanlar için bazı şirketlerin kâr dağıtımı yapabileceğini anlamaya yardımcı olur.",
@@ -22,5 +30,29 @@
     "whyItMatters": "Yeni başlayanlar için fiyat hareketlerinin ne kadar sakin veya hareketli olduğunu anlamaya yardımcı olur.",
     "example": "Bir hisse kısa sürede çok yükselip düşüyorsa volatilitesi yüksek olabilir.",
     "warning": "Volatilite tek başına yatırım kararı vermek için yeterli değildir."
+  },
+  "bilanco": {
+    "aliases": ["bilanço", "bilanco", "balance sheet", "mali tablo"],
+    "title": "Bilanço",
+    "simpleExplanation": "Bilanço, bir şirketin belirli bir tarihteki varlıklarını, borçlarını ve özkaynaklarını gösteren finansal tablodur.",
+    "whyItMatters": "Yeni başlayanlar için şirketin finansal sağlığı hakkında genel bir resim sunar.",
+    "example": "Bir şirketin 100 TL varlığı ve 60 TL borcu varsa, özkaynaği yaklaşık 40 TL olabilir.",
+    "warning": "Bilanço tek dönem yerine birden fazla dönemle birlikte değerlendirilmelidir."
+  },
+  "risk": {
+    "aliases": ["risk", "yatırım riski", "investment risk"],
+    "title": "Risk",
+    "simpleExplanation": "Risk, bir yatırımın beklenenden farklı sonuç verme veya değer kaybetme olasılığıdır.",
+    "whyItMatters": "Yeni başlayanlar için her yatırımın bir miktar risk taşıdığını anlamak önemlidir.",
+    "example": "Tek bir hisseye yatırım yapmak yerine farklı sektörlerden birden fazla hisseye yayılmak riski azaltabilir.",
+    "warning": "Yüksek getiri vaadi genellikle yüksek riskle birlikte gelebilir."
+  },
+  "hacim": {
+    "aliases": ["hacim", "işlem hacmi", "volume", "trading volume"],
+    "title": "İşlem Hacmi",
+    "simpleExplanation": "İşlem hacmi, belirli bir dönemde alınıp satılan toplam hisse miktarını gösterir.",
+    "whyItMatters": "Yeni başlayanlar için hacim, bir hissedeki ilginin ne kadar yoğun olduğuna dair fikir verebilir.",
+    "example": "Bir haber sonrası hacmin belirgin şekilde artması, yatırımcı ilgisinin yoğunlaştığını gösterebilir.",
+    "warning": "Yüksek hacim her zaman olumlu anlam taşımaz; satış baskısının da göstergesi olabilir."
   }
 }

@@ -10,6 +10,7 @@ import com.basitborsa.repository.StockPriceRepository;
 import com.basitborsa.repository.StockRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -17,6 +18,8 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 
 @Service
 public class MarketDataSyncService {
@@ -26,10 +29,13 @@ public class MarketDataSyncService {
     private static final List<String> SELECTED_SYMBOLS =
         List.of("THYAO", "ASELS", "BIMAS", "SISE", "TUPRS", "KCHOL", "GARAN", "FROTO");
 
+    private static final long ASYNC_THROTTLE_MS = 60_000L; // 1 min per symbol
+
     private final List<MarketDataProvider> providers;
     private final StockRepository stockRepository;
     private final StockPriceRepository stockPriceRepository;
     private final DataSyncLogRepository syncLogRepository;
+    private final ConcurrentMap<String, Long> lastAsyncSync = new ConcurrentHashMap<>();
 
     public MarketDataSyncService(List<MarketDataProvider> providers,
                                  StockRepository stockRepository,
@@ -44,6 +50,32 @@ public class MarketDataSyncService {
     @Scheduled(cron = "0 0 19 * * MON-FRI", zone = "Europe/Istanbul")
     public void syncDailyPrices() {
         syncSelectedStocks();
+    }
+
+    @Async
+    public void requestAsyncSync(String symbol, String reason) {
+        if (symbol == null) return;
+        long now = System.currentTimeMillis();
+        Long prev = lastAsyncSync.get(symbol);
+        if (prev != null && (now - prev) < ASYNC_THROTTLE_MS) {
+            log.debug("Async sync throttled for {} ({})", symbol, reason);
+            return;
+        }
+        lastAsyncSync.put(symbol, now);
+
+        MarketDataProvider provider = providers.stream()
+                .filter(MarketDataProvider::isAvailable)
+                .findFirst().orElse(null);
+        if (provider == null) {
+            log.warn("Async sync requested for {} but no provider available ({})", symbol, reason);
+            return;
+        }
+        try {
+            int n = syncStock(symbol.toUpperCase(), provider);
+            log.info("Async sync done: symbol={} reason={} records={}", symbol, reason, n);
+        } catch (Exception e) {
+            log.warn("Async sync failed: symbol={} reason={} err={}", symbol, reason, e.getMessage());
+        }
     }
 
     public void syncSelectedStocks() {

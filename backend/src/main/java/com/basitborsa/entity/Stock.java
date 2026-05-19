@@ -43,10 +43,10 @@ public class Stock {
     private BigDecimal marketCapBillions;
 
     @Column(name = "data_source", length = 50)
-    private String dataSource = "SEED";
+    private String dataSource;
 
     @Column(name = "is_fallback")
-    private boolean isFallback = true;
+    private boolean isFallback = false;
 
     @Column(name = "last_price_updated_at")
     private LocalDateTime lastPriceUpdatedAt;

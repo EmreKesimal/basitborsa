@@ -4,7 +4,10 @@ import DataSourceBadge from '../common/DataSourceBadge.jsx'
 
 export default function StockCard({ stock }) {
   const navigate = useNavigate()
-  const isUp = Number(stock.dailyChangePercent) >= 0
+  const hasPrice = stock.currentPrice != null
+  const hasChange = stock.dailyChangePercent != null
+  const isUp = hasChange ? Number(stock.dailyChangePercent) >= 0 : true
+  const priceUnavailable = !hasPrice
 
   return (
     <div
@@ -30,7 +33,7 @@ export default function StockCard({ stock }) {
               <p className="text-xs text-on-surface-variant truncate">{stock.companyName}</p>
             </div>
           </div>
-          <DataSourceBadge source={stock.dataSource} />
+          <DataSourceBadge source={priceUnavailable ? 'UNAVAILABLE' : stock.dataSource} />
         </div>
 
         {/* Sector */}
@@ -49,19 +52,27 @@ export default function StockCard({ stock }) {
         <div className="flex items-end justify-between pt-2 border-t border-surface-container-high">
           <div>
             <p className="text-xs text-outline mb-0.5">Son Fiyat</p>
-            <p className="text-headline-md font-bold text-on-surface">
-              {formatCurrency(stock.currentPrice)}
-            </p>
+            {priceUnavailable ? (
+              <p className="text-body-md text-orange-700 font-medium">Gerçek veri yok</p>
+            ) : (
+              <p className="text-headline-md font-bold text-on-surface">
+                {formatCurrency(stock.currentPrice)}
+              </p>
+            )}
           </div>
-          <div className="text-right">
-            <div className={`flex items-center gap-1 text-label-md ${changeColorClass(stock.dailyChangePercent)}`}>
-              <span className="material-symbols-outlined text-[14px]">
-                {isUp ? 'trending_up' : 'trending_down'}
-              </span>
-              {formatPercent(stock.dailyChangePercent)}
+          {hasChange ? (
+            <div className="text-right">
+              <div className={`flex items-center gap-1 text-label-md ${changeColorClass(stock.dailyChangePercent)}`}>
+                <span className="material-symbols-outlined text-[14px]">
+                  {isUp ? 'trending_up' : 'trending_down'}
+                </span>
+                {formatPercent(stock.dailyChangePercent)}
+              </div>
+              <p className="text-xs text-outline mt-0.5">Bugün</p>
             </div>
-            <p className="text-xs text-outline mt-0.5">Bugün</p>
-          </div>
+          ) : (
+            <p className="text-xs text-outline">—</p>
+          )}
         </div>
 
         {/* CTA */}
