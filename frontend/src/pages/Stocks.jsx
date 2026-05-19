@@ -1,5 +1,4 @@
-import { useState } from 'react'
-import { useAsync } from '../hooks/useAsync.js'
+import { useState, useEffect, useCallback } from 'react'
 import { stockService } from '../services/stockService.js'
 import StockCard from '../components/stock/StockCard.jsx'
 import LoadingState from '../components/common/LoadingState.jsx'
@@ -8,13 +7,37 @@ import EmptyState from '../components/common/EmptyState.jsx'
 
 export default function Stocks() {
   const [query, setQuery] = useState('')
-  const { data: stocks, loading, error, refetch } = useAsync(() => stockService.getAll(), [])
+  const [stocks, setStocks] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(null)
 
-  const filtered = stocks?.filter(
-    (s) =>
-      s.symbol.toLowerCase().includes(query.toLowerCase()) ||
-      s.companyName.toLowerCase().includes(query.toLowerCase())
-  )
+  const load = useCallback(async () => {
+    setLoading(true)
+    setError(null)
+    try {
+      const data = await stockService.getStocks()
+      setStocks(Array.isArray(data) ? data : [])
+    } catch (err) {
+      setError(err?.message || 'Hisseler yüklenemedi.')
+      setStocks([])
+    } finally {
+      setLoading(false)
+    }
+  }, [])
+
+  useEffect(() => {
+    load()
+  }, [load])
+
+  const safeStocks = Array.isArray(stocks) ? stocks : []
+  const q = query.trim().toLowerCase()
+  const filtered = safeStocks.filter((s) => {
+    if (!s) return false
+    if (!q) return true
+    const symbol = (s.symbol || '').toLowerCase()
+    const name = (s.companyName || '').toLowerCase()
+    return symbol.includes(q) || name.includes(q)
+  })
 
   return (
     <div className="flex flex-col gap-8">
@@ -56,19 +79,24 @@ export default function Stocks() {
           lottie="/animations/finance-chart.json"
         />
       )}
-      {error && <ErrorState message={error} onRetry={refetch} />}
+      {!loading && error && <ErrorState message={error} onRetry={load} />}
 
       {/* Grid */}
       {!loading && !error && (
         <>
-          {filtered?.length === 0 ? (
+          {safeStocks.length === 0 ? (
+            <EmptyState
+              icon="inbox"
+              message="Şu anda gösterilecek hisse yok."
+            />
+          ) : filtered.length === 0 ? (
             <EmptyState
               icon="search_off"
               message={query ? `"${query}" için sonuç bulunamadı.` : 'Hisse bulunamadı.'}
             />
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
-              {filtered?.map((stock) => (
+              {filtered.map((stock) => (
                 <StockCard key={stock.symbol} stock={stock} />
               ))}
             </div>

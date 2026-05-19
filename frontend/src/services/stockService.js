@@ -12,7 +12,16 @@ function sortStocks(list) {
 }
 
 export const stockService = {
-  getAll: () => api.get('/stocks').then((r) => sortStocks(r.data)),
+  getStocks: () =>
+    api.get('/stocks').then((r) => {
+      const list = Array.isArray(r?.data) ? r.data : []
+      return sortStocks(list)
+    }),
+  getAll: () =>
+    api.get('/stocks').then((r) => {
+      const list = Array.isArray(r?.data) ? r.data : []
+      return sortStocks(list)
+    }),
   getOne: (symbol) => api.get(`/stocks/${symbol}`).then((r) => r.data),
   getEvents: (symbol) => api.get(`/stocks/${symbol}/events`).then((r) => r.data),
   getPrices: (symbol, range = '30d') =>
